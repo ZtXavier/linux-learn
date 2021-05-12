@@ -7,13 +7,16 @@
 #include<sys/wait.h>
 #include<dirent.h>
 #include<sys/stat.h>
+#include<readline/readline.h>
+#include<readline/history.h>
+#include<pwd.h>
 
 
  #define normal         0/* 一般的命令 */
  #define out_redirect   1/* 输出重定向 */
  #define in_redirect    2/* 输入重定向 */
- #define have_pipe      3/* 命令中又有管道 */
-
+ #define have_pipe      3/* 命令中有管道 */
+ #define out_redirectt  4/* 命令中有>> */
 
  void print_prompt();                              /* 打印提示符 */
  void get_input(char* );                            /* 得到输入的命令 */
@@ -21,6 +24,7 @@
  void do_cmd(int argcount,char arglist[100][256]);                       /* 执行命令 */
  int  find_command(char *);                         /* 查找命令中的可执行程序 */
 
+ char oldload[256];      /* 为了实现cd - ,用来保存上个路径 */
 
  int main(int argc,char*argv[]){
      int i;
@@ -34,6 +38,7 @@
          perror("malloc failed");
          exit(-1);
      }
+     
      while(1){
          /* 将buf所指向的空间清零 */
          memset(buf,0,256);
