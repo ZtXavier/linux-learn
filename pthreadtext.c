@@ -2,79 +2,120 @@
 #include<stdlib.h>
 #include<pthread.h>
 
-typedef struct qsort{
-    int left;
-    int right;
-    int *a;
-} qk ;
+#define  MAX 100000
 
-void *quicksort(void *args)
+
+
+int a[MAX];
+
+void quicksort(int l,int r);
+pthread_mutex_t lock;
+// void *quicksort(void *args)
+// {
+//     qk *my_args = (qk *)args;
+
+//     int t,i=my_args->left,j=my_args->right,temp;
+//     if(my_args->left>my_args->right)
+//     return NULL;
+//     temp=my_args->a[my_args->left];
+//     i=my_args->left;
+//     j=my_args->right;
+//     while (i!=j)
+//     {
+//         while(my_args->a[j]>=temp&&i<j)
+//         j--;
+//         while (my_args->a[i]<=temp&&i<j)
+//         i++;
+//         if(i<j)
+//         {
+//             t=my_args->a[i];
+//             my_args->a[i]=my_args->a[j];
+//             my_args->a[j]=t;
+//         }
+        
+//     }
+//     my_args->a[my_args->left]=my_args->a[i];
+//     my_args->a[i]=temp;
+//     quicksort();
+//     quicksort();
+// }
+
+void init(){
+    for(int i =0;i<100000;i++)
+    a[i] = rand() % 5;
+}
+
+
+
+void quicksort(int l,int r)
 {
-    qk *my_args = (qk *)args;
-
-    int t,i=my_args->left,j=my_args->right,temp;
-    if(my_args->left>my_args->right)
-    return NULL;
-    temp=my_args->a[my_args->left];
-    i=my_args->left;
-    j=my_args->right;
+    int i=l,j=r,temp,t;
+    if(l>r)
+    return;
+    temp=a[l];
+    i=l;
+    j=r;
     while (i!=j)
     {
-        while(my_args->a[j]>=temp&&i<j)
+        while(a[j]>=temp&&i<j)
         j--;
-        while (my_args->a[i]<=temp&&i<j)
+        while (a[i]<=temp&&i<j)
         i++;
         if(i<j)
         {
-            t=my_args->a[i];
-            my_args->a[i]=my_args->a[j];
-            my_args->a[j]=t;
+            t=a[i];
+            a[i]=a[j];
+            a[j]=t;
         }
         
     }
-    my_args->a[my_args->left]=my_args->a[i];
-    my_args->a[i]=temp;
-    quicksort();
-    quicksort();
+    a[l]=a[i];
+    a[i]=temp;
+    
+      quicksort(l,i-1);
+      quicksort(i+1,r);
+ }
+
+void *thread1(void* args){
+    pthread_mutex_lock(&lock);
+    quicksort(0,99999);
+    pthread_mutex_unlock(&lock);
+    return NULL;
 }
+
+// void *thread2(void* args){
+//     pthread_mutex_lock(&lock);
+//     quicksort(a,i+1,r);
+//     pthread_mutex_unlock(&lock);
+//     return NULL;
+// }
 
 
 int main(void)
 {
-    // int n;
-    // scanf("%d",&n);
-    // int a[n];
-    // for(int i=0;i<n;i++)
-    // scanf("%d",&a[i]);
-    // quicksort(a,0,n-1);
-    // for(int i=0;i<n;i++)
+
+    // for(int i=0;i<=9;i++)
     // printf("%d ",a[i]);
-    qk q1,q2;
-    int num;
-    
-    scanf("%d",&num);
-    q1.left=0;
-    q1.right=num/2;
-    q2.left=num/2+1;
-    q2.right=num;
+    // printf("\n");
 
-    int a[num];
-
-    for(int i=0;i<num;i++)
-    scanf("%d",&a[i]);
-
-    q1.a = a;
-    q2.a = a;
-    
     pthread_t th1;
-    pthread_t th2;
-
-    pthread_create(&th1,NULL,quicksort,&q1);
-    pthread_create(&th2,NULL,quicksort,&q2);
-
+    // pthread_t th2;
+    pthread_mutex_init(&lock,NULL);
+    // if(0 != pthread_create(&th1,NULL,quicksort,)){
+    // printf("created pthread failed\n");
+    // return 0;
+    // }
+    pthread_create(&th1,NULL,thread1,NULL);
+    pthread_create(&th1,NULL,thread1,NULL);
+    pthread_create(&th1,NULL,thread1,NULL);
+    pthread_create(&th1,NULL,thread1,NULL);
+    pthread_create(&th1,NULL,thread1,NULL);
 
     pthread_join(th1,NULL);
-    pthread_join(th2,NULL);
-
+    // pthread_join(th2,NULL);
+     
+    // for(int i=0;i<=9;i++)
+    // printf("%d ",a[i]);
+    
     return 0;
 }
