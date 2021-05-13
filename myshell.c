@@ -16,7 +16,7 @@
  #define out_redirect   1/* 输出重定向 */
  #define in_redirect    2/* 输入重定向 */
  #define have_pipe      3/* 命令中有管道 */
- #define out_redirectt  4/* 命令中有>> */
+ #define out_redirectt  4/* 命令中有>>； */
 
  void print_prompt();                              /* 打印提示符 */
  void get_input(char* );                            /* 得到输入的命令 */
@@ -24,25 +24,52 @@
  void do_cmd(int argcount,char arglist[100][256]);                       /* 执行命令 */
  int  find_command(char *);                         /* 查找命令中的可执行程序 */
 
+
  char oldload[256];      /* 为了实现cd - ,用来保存上个路径 */
 
  int main(int argc,char*argv[]){
+     struct passwd *name;
+     siganl(SIGINT,SIG_IGN);
+     int len;
      int i;
      int argcount = 0;
      char arglist[100][256];
+     char temp[256];
+     char pwd[100];
      char **arg = NULL;
      char  *buf = NULL;
-     
+     char  *s   = NULL;
+
      buf = (char *)malloc(256);
      if(buf == NULL){
          perror("malloc failed");
          exit(-1);
      }
      
+    getcwd(oldload,sizeof(oldload));  //获取当前路径
+
      while(1){
+         name = getpwuid(getuid());
+         getcwd(pwd,sizeof(pwd)-1);
+         sprintf(temp,"[%s @myshell:\033[0;34m%s\033[0m]$ ",name->pw_name,pwd);
          /* 将buf所指向的空间清零 */
          memset(buf,0,256);
-         print_prompt();
+         s = readline(temp);  //用readline(）函数读取输入的命令
+         add_history(s);
+         write_history(NULL);
+         
+         strcpy(buf,s);    //将命令拷贝到buf中
+         
+         if(strcmp(buf,"cd") == 0 || strcmp(buf,"cd ") == 0 ){
+             strcat(buf,"~");
+         }
+
+         len = strlen(buf);
+         len++;
+         buf[len++] = '\n';
+         buf[len] = '\0';
+
+         //print_prompt();
          get_input(buf);
          /* 若输入的命令为exit或logout则退出本程序 */
          if(strcmp(buf,"exit\n") == 0 || strcmp(buf,"logout\n") == 0)
