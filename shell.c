@@ -21,9 +21,9 @@
 
 void do_cmd(int argcout, char arglist[100][256]);  //执行ａｒｇｌｉｓｔ中保存的命令
 int find_command(char *command);           //　在当前目录，以及/bin、/use/bin下查找命令的可执行程序
-void explain_input(char *buf, int *argcout, char arglist[100][256]);　//解析ｂｕｆ中的命令，将每个选项存到ａｒｇｌｉｓｔ
+void explain_input(char *buf, int *argcout, char arglist[100][256]);//解析ｂｕｆ中的命令，将每个选项存到ａｒｇｌｉｓｔ
 
-char oldpwd[300];　　　//为实现ｃｄ　－，用ｏｌｄｐｗｄ来保存上个路径
+char oldpwd[300];//为实现ｃｄ　－，用ｏｌｄｐｗｄ来保存上个路径
 
 int main(int argc, char **argv)
 {
@@ -40,20 +40,20 @@ int main(int argc, char **argv)
 		perror("malloc failed");
 		exit(-1);
 	}
-    getcwd(oldpwd, sizeof(oldpwd));　　//获取当前路径
+    getcwd(oldpwd, sizeof(oldpwd));//获取当前路径
 	
 	while(1){
         name = getpwuid(getuid());
         getcwd(pwd, sizeof(pwd) - 1);
-        sprintf(temp, "[%s @myshell:\033[0;34m%s\033[0m]$ ", name->pw_name, pwd);　//使输出更加美观
+        sprintf(temp, "[%s @myshell:\033[0;34m%s\033[0m]$ ", name->pw_name, pwd);//使输出更加美观
 		memset(buf,0,256);             
         s = readline(temp);     //用readline()函数读取输入命令
         add_history(s);
         write_history(NULL);
 
-        strcpy(buf, s);　　　　　　//将命令拷贝到ｂｕｆ中
+        strcpy(buf, s);//将命令拷贝到ｂｕｆ中
         
-        if ( strcmp(buf, "cd") == 0 || strcmp (buf, "cd ") == 0 ) {　　//若命令中有ｃｄ，则默认为ｃｄ　～
+        if ( strcmp(buf, "cd") == 0 || strcmp (buf, "cd ") == 0 ) {//若命令中有ｃｄ，则默认为ｃｄ　～
             strcat(buf, " ~");
         }
 
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
         buf[len] = '\0';
     
        
-        if( strcmp(buf,"exit") == 0 || strcmp(buf,"logout") == 0 )　　//输入ｅｘｉｔ或者ｌｏｇｏｕｔ退出程序
+        if( strcmp(buf,"exit") == 0 || strcmp(buf,"logout") == 0 )//输入ｅｘｉｔ或者ｌｏｇｏｕｔ退出程序
 			break;
 		
 		for( i = 0; i < 100; i++ ) {
@@ -113,8 +113,8 @@ void explain_input(char *buf,int *argcout,char arglist[100][256])
 void do_cmd(int argcout,char arglist[100][256])
 {
 	int flag=0;
-	int how =0;　　　//用于只是命令中是否含有>,<,>>,|
-	int backgroud = 0;　　//用于命令中是否有&
+	int how =0;//用于只是命令中是否含有>,<,>>,|
+	int backgroud = 0;//用于命令中是否有&
 	int status;
 	int i;
 	int fd;
@@ -141,7 +141,7 @@ void do_cmd(int argcout,char arglist[100][256])
             }
         }
 
-        if ( strcmp(arg[i],"cd") == 0 ) {　　　　//判断命令中是否有ｃｄ
+        if ( strcmp(arg[i],"cd") == 0 ) {//判断命令中是否有ｃｄ
             if (  !strcmp(arg[i+1], "~" ) ) {
                 strcpy(arg[i+1], "/home/crista");
             }
@@ -155,16 +155,16 @@ void do_cmd(int argcout,char arglist[100][256])
         }
     }
 
-    for( i = 0; arg[i] != NULL; i++ ) {
-        if( strcmp(arg[i],">") == 0 ) {
+    for( i = 0; arg[i] != NULL; i++ ){
+        if( strcmp(arg[i],">") == 0 ){
             flag++;
-            how = out_redirect;
+            how=out_redirect; 
 			if (arg[i+1] == NULL)
 				flag++;
 		}
-		if( strcmp(arg[i],"<") == 0 ) {
+		if( strcmp(arg[i],"<") == 0 ){
 			flag++;
-			how = in_redirect;
+			how=in_redirect;
 			if(i == 0)
 				flag++;
 		}
@@ -176,20 +176,20 @@ void do_cmd(int argcout,char arglist[100][256])
 			if( i == 0)
 				flag++;
 		}
-        if ( strcmp(arg[i],">>") == 0 ) {
+        if ( strcmp(arg[i],">>") == 0 ){
             flag++;
-            how = out_redirec;
+            how=out_redirec;
             if (arg[i+1] == NULL)
                 flag++;
         }
 	}
 
 	if(flag > 1){
-		printf("wrong command !\n");　　//命令中只支持一个<,>,>>,|
+		printf("wrong command !\n");//命令中只支持一个<,>,>>,|
 		return ;
 	}
 
-	if( how == out_redirect ){
+	if(how==out_redirect){
 		for( i = 0; arg[i]!=NULL; i++ ) {
 			if(strcmp(arg[i],">") == 0) {
 				file = arg[i+1];
@@ -221,7 +221,7 @@ void do_cmd(int argcout,char arglist[100][256])
 		}
 	}
 
-	if( how == out_redirec ){
+	if( how ==  out_redirec){
 		for( i = 0; arg[i]!=NULL; i++ ) {
 			if(strcmp(arg[i],">>") == 0) {
 				file = arg[i+1];
@@ -334,13 +334,13 @@ void do_cmd(int argcout,char arglist[100][256])
     }
 	
     if( backgroud ==1 ) {
-        printf("[process id %d]\n",pid);　　//父进程退出，不等待子进程，表示后台执行
+        printf("[process id %d]\n",pid);//父进程退出，不等待子进程，表示后台执行
         exit(0);
     }
 
 
     if(waitpid(pid,&status,0) == -1){
-        printf("wait for child process error!\n");　　//父进程等待子进程结束
+        printf("wait for child process error!\n");//父进程等待子进程结束
     }
 
 
