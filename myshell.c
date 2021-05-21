@@ -11,7 +11,7 @@
 #include<readline/readline.h>
 #include<readline/history.h>
 #include<signal.h>
-
+#include<pwd.h>
 
  #define normal            0   /* 一般的命令 */
  #define out_redirect      1   /* 输出重定向 */
@@ -32,6 +32,7 @@ char **rl_completion_matches(const char *text,rl_compentry_func_t,*entry_func);*
 // char arglist[100][256];
 
 void hander(int sign){
+    struct passwd *name;
     char tmp[256];
     char tmp_ll[256];
     int  tm = 0;
@@ -46,9 +47,10 @@ void hander(int sign){
     for(int i=tm;i<=lt+1;i++) 
     tmp_ll[i-tm]=tmp[i];
     tmp_ll[lt+2-tm]='\0';
+    name = getpwuid(getuid());
     printf("\001\033[1m\002");
     printf("\033[36m");
-    printf("\n错误!myshell@%s$$:",tmp);
+    printf("\n错误![%s myshell@%s$$]:",name->pw_name,tmp);
     printf("\001\033[34m\002");
 }
 void Showhistory(){
@@ -66,6 +68,7 @@ int my_cd(char *buf){
 }
 
  int main(int argc,char **argv){
+     read_history(NULL);
      system("clear");
      setbuf(stdout,NULL);  //程序在接受到SIGINT信号室转入的处理函数不处理缓冲区会转入下一行
      signal(SIGINT,hander);
@@ -120,6 +123,7 @@ int my_cd(char *buf){
  }
 
  void print_prompt(){
+   struct passwd *name;
    char tmp[256];
     char tmp_ll[256];
     int  tm = 0;
@@ -134,9 +138,10 @@ int my_cd(char *buf){
     for(int i=tm;i<=lt+1;i++) 
     tmp_ll[i-tm]=tmp[i];
     tmp_ll[lt+2]='\0';
+    name=getpwuid(getuid());
     printf("\001\033[0m\002");
     printf("\033[32m");
-    printf("\nmyshell@%s$$:",tmp_ll);
+    printf("\n[%s@myshell@%s$$]:",name->pw_name,tmp_ll);
     printf("\001\033[0m\002");
  }
 
@@ -154,13 +159,14 @@ int my_cd(char *buf){
     //   if(strcmp(buf,"cd") == 0 || strcmp(buf,"cd ") == 0 ){
     //          strcat(buf," ~");
     //      }
-  
+     
     *buf = readline("myshell@:");
     // ch = getchar();
     //   while ((len < 256) && (ch != '\n')){
     //       buf[len++] = ch;
     //       ch = getchar();
     //   }
+    
     add_history(*buf);
     write_history(NULL);
       if(len == 256){

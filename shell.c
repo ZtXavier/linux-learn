@@ -13,11 +13,11 @@
 #include <pwd.h>
 
 
-#define normal          0  　 //一般的命令
-#define out_redirect    1  	　//输出重定向
-#define in_redirect     2  	　//输入重定向
-#define have_pipe       3  　　//命令中有管道
-#define out_redirec     4　　　//命令中有>>
+#define normal          0　 
+#define out_redirect    1 
+#define in_redirect     2
+#define have_pipe       3
+#define out_redirec     4
 
 void do_cmd(int argcout, char arglist[100][256]);  //执行ａｒｇｌｉｓｔ中保存的命令
 int find_command(char *command);           //　在当前目录，以及/bin、/use/bin下查找命令的可执行程序
@@ -185,10 +185,9 @@ void do_cmd(int argcout,char arglist[100][256])
 	}
 
 	if(flag > 1){
-		printf("wrong command !\n");//命令中只支持一个<,>,>>,|
+		printf("wrong command !\n");
 		return ;
 	}
-
 	if(how==out_redirect){
 		for( i = 0; arg[i]!=NULL; i++ ) {
 			if(strcmp(arg[i],">") == 0) {
@@ -197,8 +196,7 @@ void do_cmd(int argcout,char arglist[100][256])
 			}
 		}
 	}
-
-	if(how == in_redirect){
+	if(how==in_redirect){
 		for(i=0; arg[i] != NULL;i++){
 			if(strcmp(arg[i],"<") == 0){
 				file = arg[i+1];
