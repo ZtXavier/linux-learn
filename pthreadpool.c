@@ -356,28 +356,28 @@ int threaddestroy(threadpool *pool){
 
 
 
-void *taskfunc(void *arg){
+// void *taskfunc(void *arg){
 
-    int num = *(int*)arg;
+//     int num = *(int*)arg;
 
-    printf("thread %ld is working,tid = %d",pthread_self(),num);
+//     printf("thread %ld is working,tid = %d\n",pthread_self(),num);
 
-    usleep(1000);
-}
+//     usleep(1000);
+// }
 
 
-int main(void){
+// int main(void){
 
     
-    threadpool *pool = threadPoolcreate(10,3,50);
+//     threadpool *pool = threadPoolcreate(10,3,50);
     
-    for(int i = 0;i < 50;i++){
-        int *num = (int*)malloc(sizeof(int));
-        *num = i + 100;
-        threadpooladd(pool,taskfunc,num);
-    }
-    sleep(30);                        //等待子线程处理完任务
+//     for(int i = 0;i < 50;i++){
+//         int *num = (int*)malloc(sizeof(int));
+//         *num = i + 100;
+//         threadpooladd(pool,taskfunc,num);
+//     }
+//     sleep(30);                        //等待子线程处理完任务
 
-    threaddestroy(pool);
-    return 0;
-}
+//     threaddestroy(pool);
+//     return 0;
+// }

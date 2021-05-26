@@ -1,5 +1,5 @@
 #ifndef _PTHREADPOOL_H
-#define _PTHREADPOOL_H 1
+#define _PTHREADPOOL_H 
 
 
 typedef struct mission CThread_mission;
