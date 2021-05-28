@@ -8,7 +8,7 @@
 #define addNUM 10
 #define workerNum 5
 
-int queue[N] = {0};   //任务缓冲区
+int queue[N] = {0};   //任务缓冲区（初始化为0）,实现循环队列
 int in = 0;           //生产的产品的位置
 int out = 0;          //消费者的位置
 int mutex = 1;        //互斥条件  
