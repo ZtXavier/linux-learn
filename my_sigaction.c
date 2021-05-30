@@ -20,8 +20,8 @@ int main(void){
 
     /* 赋值 act 结构 */
     act.sa_handler = handler_sigint;
-    act.sa_flags = SA_NOMASK;
-    
+    act.sa_flags = SA_NOMASK;         //当按下crtl + c 从函数返回时进程的信号屏蔽码恢复原来的值
+
     /* 安装信号处理函数 */
     sigaction(SIGINT,&act,NULL);
 
