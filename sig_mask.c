@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<unistd.h>
 #include<signal.h>
+#include<stdlib.h>
 
 /* 自定义的错误处理函数 */
 void my_err(const char* err_string,int line){
@@ -28,7 +29,7 @@ int main(){
     sigaddset(&newmask,SIGINT);
 
     /* 屏蔽信号SIGINT */
-    if(sigprocmask(SIG_BLOCK,&newmask,&oldmask) < 0){ //这里将信号屏蔽字保存到oldmask中
+    if(sigprocmask(SIG_BLOCK,&newmask,&oldmask) < 0){  //这里将信号屏蔽字保存到oldmask中
         my_err("sigprocmask",__LINE__);
     }
         else{

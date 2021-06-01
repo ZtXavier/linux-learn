@@ -1,3 +1,3 @@
- if(strcmp(buf,"cd") == 0 || strcmp(buf,"cd ") == 0 ){
-    //          strcat(buf," ~");
-    //      }
+if(sigprocmask(SIG_SETMASK,&oldmask,NULL) < 0){
+    // my_err("sigprocmask",__LINE__);
+    // }

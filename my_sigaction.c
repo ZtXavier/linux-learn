@@ -26,6 +26,6 @@ int main(void){
     sigaction(SIGINT,&act,NULL);
 
     while(1)
-       ;
+       ;       //若删去循环则无法实现信号的接收处理
     return 0;
 }
