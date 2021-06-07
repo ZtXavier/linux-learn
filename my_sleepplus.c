@@ -29,8 +29,8 @@ int my_sleeppuls(int time)
     // 设置为oldmask，之后醒来再恢复原有的newmask
     sigsuspend(&oldmask);
     
-    //恢复oldmask
-    if (sigprocmask(SIG_UNBLOCK, &newmask, NULL) < 0)
+    //恢复为oldmask（原来的值）
+    if (sigprocmask(SIG_SETMASK, &oldmask, NULL) < 0)
     {
         printf("sigproc failed\n");
     }

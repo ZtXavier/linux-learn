@@ -4,7 +4,7 @@
 #include<signal.h>
 
 void handler(){
-    ;
+    ;                           //可添加任务
 }
 
 int my_sleep(int time){
@@ -16,7 +16,7 @@ int my_sleep(int time){
     alarm(time);         //timeout秒后闹钟超时，内核发SIGALRM给这个进程
     //while(1);
     pause();             //pause函数返回-1，然后调用alarm(0)取消闹钟，调用sigaction恢复信号处理前的动作                 
-    int ret = alarm(time);
+    int ret = alarm(0);
     sigaction(SIGALRM,&oact,NULL);//将信号的处理动作初始化
     return ret;
 }
