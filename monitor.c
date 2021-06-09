@@ -31,7 +31,7 @@ int main(int argc,char *argv[],char ** environ){
         case 0:
             /* child */
              close(fd[1]);
-             dup2(fd[0],STDIN_FILENO);
+             dup2(fd[0],STDIN_FILENO); //这里dup2的第二个参数不单单指的是宏（文件描述符），而是作为文件数组的下标，然后通过寻找inode指针进行对文件的操作
              execve("ctrlprocess",argv,environ);
              exit(0);
 

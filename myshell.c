@@ -347,7 +347,7 @@ int my_cd(char *buf){
         }
         break;
     case 1:
-        /* 输入的命令中含有输出重定向符> */
+        /* 输入的命令中含有输入重定向符> */
         if(pid == 0){
             if( !(find_command (arg[0])) ){
                 printf("%s : command not found\n",arg[0]);
