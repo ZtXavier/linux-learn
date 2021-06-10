@@ -5,7 +5,7 @@
 #include<unistd.h>
 
 
-#define N 5
+#define N  5 
 #define LEFT (signo+N-1)%N
 #define RIGHT (signo+1)%N
 #define THINK_TIME 2

@@ -53,9 +53,9 @@ void  *thinker_work(void * arg){
     printf("thinker init[%d]\n",id->i);
     while(1){
         thinking(id->i);
-        //pthread_mutex_lock(&mutex);    //在这里添加互斥锁后，线程将一个一个进行工作，不会有多个线程同时取筷子而阻塞该进程，有效防止了死锁，但是其效率较低
+        pthread_mutex_lock(&mutex);    //在这里添加互斥锁后，线程将一个一个进行工作，不会有多个线程同时取筷子而阻塞该进程，有效防止了死锁，但是其效率较低
         take_chopstick(id->i);
-        //pthread_mutex_unlock(&mutex);
+        pthread_mutex_unlock(&mutex);
         eating(id->i);
         put_downcps(id->i);
     }  
