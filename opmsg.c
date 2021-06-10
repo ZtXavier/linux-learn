@@ -1,7 +1,9 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<string.h>
 #include<sys/ipc.h>
 #include<sys/msg.h>
+#include<time.h>
 
 #define BUF_SIZE 256
 #define PROJ_ID  32
@@ -56,7 +58,7 @@ int main(void){
     exit(0);
 
 }
-void getmsgatter(int msgid,struct msqid_ds msg_info){
+void getmsgattr(int msgid,struct msqid_ds msg_info){
     if(msgctl(msgid,IPC_STAT,&msg_info) == -1){
         perror("msgctl error!\n");
         return ;
@@ -64,13 +66,13 @@ void getmsgatter(int msgid,struct msqid_ds msg_info){
     printf("******information of message queue %d******\n",msgid);
     printf("last msgsnd to msq time is %s \n",ctime(&msg_info.msg_stime));
     printf("last msgrcv time from msq is %s \n",ctime(&msg_info.msg_rtime));
-    printf("last change msq time is %s\n",ctime(&msg_info.msg_ctime));
-    printf("");
-    printf("");
-    printf("");
-    printf("");
-    printf("");
-    printf("");
-    printf("");
-    printf("");
+    printf("last change msq time is %s\n",ctime(&(msg_info.msg_ctime)));
+    printf("current number of bytes on queue is %d\n",msg_info.__msg_cbytes);
+    printf("number of messages in queue is %d\n",msg_info.msg_qnum);
+    printf("max number of bytes on queue is %d\n",msg_info.msg_qbytes);
+    printf("pid of last msgsnd is %d\n",msg_info.msg_lspid);
+    printf("pid of last msgrcv is %d\n",msg_info.msg_lrpid);
+    printf("msg uid is %d\n",msg_info.msg_perm.uid);
+    printf("msg gid is %d\n",msg_info.msg_perm.gid);
+    printf("******information end******\n");
 }

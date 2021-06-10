@@ -2,7 +2,11 @@
 #include<string.h>
 
 int main(void){
-    char array[10]="xiyou\0";
-    printf("%d",strlen(array));
+    int i;
+    int sum = 0;
+    for(i = 0;i < 50; i++){
+        
+        sum += i;
+    }
     return 0;
 }
