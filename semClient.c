@@ -1,7 +1,9 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<sys/types.h>
+#include<sys/ipc.h>
 #include<linux/sem.h>
+#include<semaphore.h>
 
 
 int main(void){
@@ -10,7 +12,7 @@ int main(void){
     int    semid,semval;
     union semun semopts;
 
-    if((key = ftok(".",'s')) == -1){
+    if((key = ftok(".",1)) == -1){
         perror("ftok error!\n");
         exit(1);
     }
@@ -31,10 +33,9 @@ int main(void){
         }
         else
         {
-            printf("No more resource can be used\n");
+            printf("No more resource can be used %d\n",semval);
             break;
         }
-        
         sleep(3);
     }
     exit(0);

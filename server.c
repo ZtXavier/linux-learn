@@ -11,17 +11,18 @@
 #define FIFO_WRITE    "writefifo"
 #define BUF_SIZE      1024
 
+
 int main(void){
     int          wfd,rfd;
     char         buf[BUF_SIZE];
     int          len;
 
     umask(0);
-    if(mkfifo(FIFO_WRITE,S_IFIFO | 0666)){
+    if(mkfifo(FIFO_WRITE,0666)){
         printf("can not create FIFO %s because %s",FIFO_WRITE,strerror(errno));
         exit(1);
     }
-    
+
     wfd = open(FIFO_WRITE,O_WRONLY);
     if(wfd == -1){
         printf("open FIFO %s errno :%s",FIFO_WRITE,strerror(errno));
@@ -47,4 +48,5 @@ int main(void){
             printf("Cyou: %s\n",buf);
         }
     }
+
 }

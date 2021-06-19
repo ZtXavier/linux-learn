@@ -17,7 +17,7 @@ int main(void){
     int          len;
 
     umask(0);
-    if(mkfifo(FIFO_WRITE,S_IFIFO | 0666)){
+    if(mkfifo(FIFO_WRITE,0666)){
         printf("can not create FIFO %s because %s",FIFO_WRITE,strerror(errno));
         exit(1);
     }
