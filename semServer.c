@@ -2,7 +2,7 @@
 #include<stdlib.h>
 #include<sys/types.h>
 #include<sys/ipc.h>
-#include<linux/sem.h>
+#include<sys/sem.h>
 #include<unistd.h>
 
 
@@ -20,7 +20,7 @@ int main(void){
         struct seminfo *_buf;
     }semopts;
 
-    if((key = ftok(".",1)) == -1){
+    if((key = ftok(".",'s')) == -1){
         perror("ftok error!\n");
         exit(1);
     }
@@ -28,21 +28,18 @@ int main(void){
         perror("semget error!\n");
         exit(1);
     }
-    semopts.val = MAX_RESOURCE;
 
-    if(semctl(semid,0,SETVAL,semopts) == -1){
+    semopts.val = MAX_RESOURCE;
+    if((semctl(semid,0,SETVAL,semopts)) == -1){
         perror("semctl error\n");
         exit(1);
     }
     while(1){
-        printf("adwadaw\n");
-        if((semval=semop(semid,&sbuf,1)) == -1){
+        if((semval = semop(semid,&sbuf,1)) == -1){
             perror("semop error!\n");
             exit(1);
         }
-    
         sleep(3);
-       
     }
     exit(0);
 }

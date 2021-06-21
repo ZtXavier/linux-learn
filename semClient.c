@@ -2,17 +2,22 @@
 #include<stdlib.h>
 #include<sys/types.h>
 #include<sys/ipc.h>
-#include<linux/sem.h>
+#include<sys/sem.h>
 #include<semaphore.h>
+#include<unistd.h>
 
 
 int main(void){
 
     key_t  key;
     int    semid,semval;
-    union semun semopts;
+    union semun {
+        int    val;
+        struct semid_ds *buf;
+        unsigned short *array;
+    }semopts;
 
-    if((key = ftok(".",1)) == -1){
+    if((key = ftok(".",'s')) == -1){
         perror("ftok error!\n");
         exit(1);
     }

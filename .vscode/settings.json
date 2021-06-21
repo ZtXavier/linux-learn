@@ -6,6 +6,9 @@
   "code-runner.saveFileBeforeRun": true,
   "code-runner.preserveFocus": true,
   "code-runner.clearPreviousOutput": false,
-  "C_Cpp_Runner.warnings": ""
+  "C_Cpp_Runner.warnings": "",
+  "files.associations": {
+    "mylib.h": "c"
+  }
 
 }

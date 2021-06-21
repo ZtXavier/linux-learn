@@ -1,9 +1,11 @@
+/* 有名管道的写入 */
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#include<fcntl.h>
-#include<sys/stat.h>
-#include<sys/types.h>
+#include"fcntl.h"
+#include"sys/stat.h"
+#include"sys/types.h"
+#include<unistd.h>
 
 #define   FIFO_NAME  "myfifo"
 #define   BUF_SIZE    1024
@@ -13,7 +15,7 @@ int main(void){
     char buf[BUF_SIZE] = "hel proc,lllll";
     umask(0);
 
-    if(mkfifo(FIFO_NAME, S_IFIFO | 0666) == -1){
+    if(mkfifo(FIFO_NAME, 0666) == -1){
         perror("mkfifo error!\n");
         exit(1);
     }
@@ -24,6 +26,6 @@ int main(void){
     }
    write(fd,buf,strlen(buf)+1);/* 向FIFO写数据 */
    close(fd);
-   //unlink(FIFO_NAME); 
-   exit(0);
+   //unlink(FIFO_NAME);
+    exit(0);
 }
