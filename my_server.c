@@ -3,10 +3,11 @@
 #include<unistd.h>
 #include<stdio.h>
 #include<string.h>
+#include<stdlib.h>
 #include<netinet/in.h>
 #include<arpa/inet.h>
 #include<errno.h>
-//#include"my_recv.h"
+#include"my_recv.h"
 
 #define  SERV_PORT        4507    //服务器的端口
 #define  LISTENQ          12      //链接请求队列的最大长度

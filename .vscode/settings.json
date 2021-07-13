@@ -8,7 +8,8 @@
   "code-runner.clearPreviousOutput": false,
   "C_Cpp_Runner.warnings": "",
   "files.associations": {
-    "mylib.h": "c"
+    "mylib.h": "c",
+    "string.h": "c"
   }
 
 }
