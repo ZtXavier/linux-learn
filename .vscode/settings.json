@@ -9,7 +9,12 @@
   "C_Cpp_Runner.warnings": "",
   "files.associations": {
     "mylib.h": "c",
-    "string.h": "c"
+    "string.h": "c",
+    "unp.h": "c",
+    "*.tcc": "c",
+    "numeric": "c",
+    "ostream": "c",
+    "sstream": "c"
   }
 
 }
