@@ -14,7 +14,9 @@
     "*.tcc": "c",
     "numeric": "c",
     "ostream": "c",
-    "sstream": "c"
+    "sstream": "c",
+    "syslog.h": "c",
+    "mysql.h": "c"
   }
 
 }

@@ -2,7 +2,9 @@
 //客户端
 int main(int argc,char *argv[]){
     int     sockfd,n;
+    int     loop =0;
     char    recvline[MAXLINE + 1];
+    char    sendline[MAXLINE + 1];
     struct  sockaddr_in    servaddr;
 
     if(argc != 2)
@@ -25,12 +27,21 @@ int main(int argc,char *argv[]){
     //读入与服务器的联接应答
     while((n = read(sockfd,recvline,MAXLINE)) > 0){
     recvline[n] = 0;
+    //发送数据
+    snprintf(sendline,MAXLINE,"你好，啦啦啦,%d\n",loop++);
+    send(sockfd,sendline,sizeof(sendline)+1,0);
+    //接收数据
     if((fputs(recvline,stdout)) == EOF)
     err_sys("fputs error");
-    }
     if(n < 0){
         err_sys("read error");
+        break;
     }
+    else if(n == 0){
+        printf("服务器断开了链接...\n");
+    }
+}
+
     //终止程序
     exit(0);
 }
