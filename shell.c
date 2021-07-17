@@ -46,7 +46,7 @@ int main(int argc, char **argv)
         name = getpwuid(getuid());
         getcwd(pwd, sizeof(pwd) - 1);
         sprintf(temp, "[%s @myshell:\033[0;34m%s\033[0m]$ ", name->pw_name, pwd);//使输出更加美观
-		memset(buf,0,256);             
+		memset(buf,0,256);
         s = readline(temp);     //用readline()函数读取输入命令
         add_history(s);
         write_history(NULL);

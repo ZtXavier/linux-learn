@@ -126,7 +126,7 @@ void create_table()
 	if(iNum_rows == 0)
 	{
 		puts("create users table");
-		executesql("create table users(name char(20) not null ,passwd char(24) not null ,email char(24) not null ,stat int(1) not null , fd int(1) not null);");
+		executesql("create table users(name char(20) not null ,passwd char(24) not null ,email char(24) not null ,phone char(24) not null,state int(1) not null , fd int(1) not null);");
 	}
 	mysql_free_result(g_res); //释放结果集
 }
