@@ -54,7 +54,7 @@ char   data[MSGSIZE];   //消息数据
 
 
 /* 数据库变量 */
-MYSQL *mysql;                            //用于初始化地址，如果用null的话可能在close时造成系统崩溃
+//MYSQL *mysql;                            //用于初始化地址，如果用null的话可能在close时造成系统崩溃
 MYSQL *conn ;                            //MYSQL链接
 MYSQL_RES *res = NULL ;                  //MYSQL记录集
 MYSQL_ROW  row;                          //字符串数组记录行
@@ -71,8 +71,8 @@ int  listenfd;
 int  len;
 int  start = 1;                          //创建线程开始的标志
 int  startnum = 0;
-msg *recvmsg,*sendmsg;                   //定义接收，发送消息的结构体指针
-user usr;                 
+msg *rvms,*sdms;                   //定义接收，发送消息的结构体指针
+user usr;                                //定义用户的结构体
 struct sockaddr_in servaddr,cliaddr;
 pthread_t  tid[10]={0};
 socklen_t  cliaddr_len;
@@ -88,8 +88,6 @@ int executesql(const char *sql){
 }
 
 int init_mysql(){
-    
-
 	//初始化mysql
       conn = mysql_init(NULL);   //当为null时会分配一个新的对象
     //mysql_init(conn);
@@ -136,8 +134,9 @@ void find_table(){
 
 //初始化服务器
 void init_serv(){
-    recvmsg = (msg*)malloc(MSGSIZE);
-    sendmsg = (msg*)malloc(MSGSIZE);
+    //开创空间作为数据发送包
+    rvms = (msg*)malloc(MSGSIZE);
+    sdms = (msg*)malloc(MSGSIZE);
 
     //初始化socket
     listenfd = socket(AF_INET,SOCK_STREAM,0);
@@ -169,11 +168,11 @@ void init_serv(){
 //用户注册函数
 void user_login(int connfd){
     //先定义客户端状态
-    sendmsg->type = USER_SIGN;
-    sendmsg->msglen = 0;
+    sdms->type = USER_SIGN;
+    sdms->msglen = 0;
     int len = 0;
     if(send(connfd,sendmsg,sizeof(msg),0) < 0){
-        perror("send");
+        perror("login_send1");
     }
     while(1){
         //接收信息
@@ -181,22 +180,101 @@ void user_login(int connfd){
         bzero(usr,sizeof(user));
         len = recv(connfd,recvmsg,MSGSIZE,0);
         if(len < 0){
-            perror("recv");
+            perror("login_recv1");
         }else if(len == 0){
             printf("客户端与主机断开连接...\n");
         }
-        if(recvmsg->type == USER_MASSAGE){
-            memcpy(usr.name,recvmsg->data,recvmsg->msglen);
+
+        if(rvms->type == USER_MASSAGE){
+            memcpy(usr.name,rvms->data,rvms->msglen);
             //在数据库中查找客户端输入的用户名
-            
+            sprintf(sql,"select * from users where name='%s'",usr.name);
+            executesql(sql); //执行操作
+            //统计名字出现的个数
+            res = mysql_store_result(conn);
+            num_rows = mysql_num_rows(res);
+            //名字若没找到，则可以注册
+            if(num_rows == 0){
+                sdms->type = USER_AGREE; //该选项为同意使用
+                sdms->msglen = 0;
+                if(send(connfd,(void*)sdms,sizeof(msg),0) < 0){
+                    perror("login_send2");
+                }
+            }else{
+                sdms->type = USER_DISAG;
+                sdms->msglen = 0;
+                if(send(connfd,(void*)sdms,sizeof(msg),0) < 0){
+                    perror("login_send3");
+                }
+            }
         }
+            //当可以注册时，接收用户的密码信息
+            bzero(rvms,sizeof(rvms));
+            if((len = recv(connfd,(void *)rvms,MSGSIZE,0)) < 0){
+                perror("login_recv2");
+            }else if(len == 0){
+                printf("客户端断开连接...\n");
+            }
+            if(USER_MASSAGE == rvms->type){
+                memcpy(usr.password,rvms->data,rvms->msglen);
+                sdms->type = USER_AGREE;
+                sdms->msglen = 0;
+                if(send(connfd,(void *)sdms,MSGSIZE,0) < 0){
+                    perror("login_send4");
+                }
+            }
 
+            //接收来自客户端的邮箱信息
+            bzero(rvms,sizeof(rvms));
+            if((len = recv(connfd,(void*)rvms,MSGSIZE,0)) < 0){
+                perror("login_recv3");
+            }else if(len == 0){
+                printf("客户端断开连接...\n");
+            }
+            if(USER_MASSAGE == rvms->type){
+                memcpy(usr.email,rvms->data,rvms->msglen);
+                sdms->type = USER_AGREE;
+                sdms->msglen = 0;
+                if(send(connfd,(void *)sdms,MSGSIZE,0) < 0){
+                    perror("login_send5");
+                }
+            }
 
+             //接收来自客户端的电话
+            bzero(rvms,sizeof(rvms));
+            if((len = recv(connfd,(void*)rvms,MSGSIZE,0)) < 0){
+                perror("login_recv3");
+            }else if(len == 0){
+                printf("客户端断开连接...\n");
+            }
+            if(USER_MASSAGE == rvms->type){
+                memcpy(usr.phonenum,rvms->data,rvms->msglen);
+                sdms->type = USER_AGREE;
+                sdms->msglen = 0;
+                if(send(connfd,(void *)sdms,MSGSIZE,0) < 0){
+                    perror("login_send6");
+                }
+            
+            // //在服务器打印
+            // puts("name:");
+            // puts(usr.name);
+            // puts("passwd:");
+            // puts(usr.password);
+            // puts("email:");
+            // puts(usr.email);
+            // puts("phone:");
+            // puts(usr.phonenum);
+
+            //将帐号等信息存入数据库
+            sprintf(sql,"insert into users values('%s','%s','%s','%s')",usr.name,usr.password,usr.email,usr.phonenum);
+            executesql(sql);
+            puts("账户信息注册成功！\n");
+            break;
+        }
     }
-
-
-
 }
+
+
 
 
 void *server_meun(void *connfd){
@@ -212,7 +290,7 @@ void *server_meun(void *connfd){
         }else if(len == 0){
             printf("客户端断开连接...\n");
         }
-    switch (recvmsg->type)
+    switch (rvms->type)
     {
     case USER_SIGN:   //注册
            user_login(cfd);

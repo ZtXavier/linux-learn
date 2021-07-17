@@ -33,3 +33,10 @@ int    type;            //消息类型
 int    msglen;          //消息长度
 char   data[MSGSIZE];   //消息数据
 }msg;
+
+
+
+int main(){
+    int l = 0;
+    
+}
