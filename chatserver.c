@@ -9,12 +9,12 @@
 #include<arpa/inet.h>
 #include<netinet/in.h>
 #include<time.h>
-#include<time.h>
 #include<mysql/mysql.h>
 
 #define   PORT 9988          //端口号
 #define   LINSTENNUM  20      //最大监听数
-#define   MSGSIZE    1024    //最大消息长度
+#define   MSGSIZE    1024    //消息长度
+#define   MAXSIZE    1032    //最大包的长度
 #define   IP     "127.0.0.1" //ip地址
 #define   MYSQL_MAX   1024   //数据库数组最大长度
 
@@ -53,6 +53,11 @@ char   data[MSGSIZE];   //消息数据
 }msg;
 
 
+
+
+
+
+
 /* 数据库变量 */
 //MYSQL *mysql;                            //用于初始化地址，如果用null的话可能在close时造成系统崩溃
 MYSQL *conn ;                            //MYSQL链接
@@ -74,7 +79,7 @@ int  startnum = 0;
 msg *rvms,*sdms;                   //定义接收，发送消息的结构体指针
 user usr;                                //定义用户的结构体
 struct sockaddr_in servaddr,cliaddr;
-pthread_t  tid[10]={0};
+pthread_t  tid[10]={-1};
 socklen_t  cliaddr_len;
 
 
@@ -135,8 +140,8 @@ void find_table(){
 //初始化服务器
 void init_serv(){
     //开创空间作为数据发送包
-    rvms = (msg*)malloc(MSGSIZE);
-    sdms = (msg*)malloc(MSGSIZE);
+    rvms = (msg*)malloc(MAXSIZE);
+    sdms = (msg*)malloc(MAXSIZE);
 
     //初始化socket
     listenfd = socket(AF_INET,SOCK_STREAM,0);
@@ -159,9 +164,9 @@ void init_serv(){
     //初始化mysql
     init_mysql();
     //选择创建数据库
-    create_databases();
+    //create_databases();
     //初始化表
-    find_table();
+    //find_table();
 }
 
 
@@ -171,14 +176,14 @@ void user_login(int connfd){
     sdms->type = USER_SIGN;
     sdms->msglen = 0;
     int len = 0;
-    if(send(connfd,sendmsg,sizeof(msg),0) < 0){
+    if(send(connfd,(void*)sdms,sizeof(msg),0) < 0){
         perror("login_send1");
     }
     while(1){
         //接收信息
-        bzero(recvmsg,sizeof(msg));
-        bzero(usr,sizeof(user));
-        len = recv(connfd,recvmsg,MSGSIZE,0);
+        bzero(rvms,sizeof(msg));
+        bzero(&usr,sizeof(usr));
+        len = recv(connfd,rvms,MAXSIZE,0);
         if(len < 0){
             perror("login_recv1");
         }else if(len == 0){
@@ -206,11 +211,12 @@ void user_login(int connfd){
                 if(send(connfd,(void*)sdms,sizeof(msg),0) < 0){
                     perror("login_send3");
                 }
+
             }
         }
             //当可以注册时，接收用户的密码信息
             bzero(rvms,sizeof(rvms));
-            if((len = recv(connfd,(void *)rvms,MSGSIZE,0)) < 0){
+            if((len = recv(connfd,(void *)rvms,MAXSIZE,0)) < 0){
                 perror("login_recv2");
             }else if(len == 0){
                 printf("客户端断开连接...\n");
@@ -219,14 +225,14 @@ void user_login(int connfd){
                 memcpy(usr.password,rvms->data,rvms->msglen);
                 sdms->type = USER_AGREE;
                 sdms->msglen = 0;
-                if(send(connfd,(void *)sdms,MSGSIZE,0) < 0){
+                if(send(connfd,(void *)sdms,sizeof(msg),0) < 0){
                     perror("login_send4");
                 }
             }
 
             //接收来自客户端的邮箱信息
             bzero(rvms,sizeof(rvms));
-            if((len = recv(connfd,(void*)rvms,MSGSIZE,0)) < 0){
+            if((len = recv(connfd,(void*)rvms,MAXSIZE,0)) < 0){
                 perror("login_recv3");
             }else if(len == 0){
                 printf("客户端断开连接...\n");
@@ -235,14 +241,14 @@ void user_login(int connfd){
                 memcpy(usr.email,rvms->data,rvms->msglen);
                 sdms->type = USER_AGREE;
                 sdms->msglen = 0;
-                if(send(connfd,(void *)sdms,MSGSIZE,0) < 0){
+                if(send(connfd,(void *)sdms,sizeof(msg),0) < 0){
                     perror("login_send5");
                 }
             }
 
              //接收来自客户端的电话
             bzero(rvms,sizeof(rvms));
-            if((len = recv(connfd,(void*)rvms,MSGSIZE,0)) < 0){
+            if((len = recv(connfd,(void*)rvms,MAXSIZE,0)) < 0){
                 perror("login_recv3");
             }else if(len == 0){
                 printf("客户端断开连接...\n");
@@ -251,10 +257,10 @@ void user_login(int connfd){
                 memcpy(usr.phonenum,rvms->data,rvms->msglen);
                 sdms->type = USER_AGREE;
                 sdms->msglen = 0;
-                if(send(connfd,(void *)sdms,MSGSIZE,0) < 0){
+                if(send(connfd,(void *)sdms,sizeof(msg),0) < 0){
                     perror("login_send6");
                 }
-            
+
             // //在服务器打印
             // puts("name:");
             // puts(usr.name);
@@ -282,8 +288,8 @@ void *server_meun(void *connfd){
     int flag = 0;
     int len = 0;
     while(1){
-        bzero(recvmsg,sizeof(recvmsg));
-        len = recv(*(int*)connfd,(void *)recvmsg,MSGSIZE,0);
+        bzero(rvms,sizeof(rvms));
+        len = recv(*(int*)connfd,(void *)rvms,MAXSIZE,0);
         if(len < 0){
             perror("recv");
             exit(1);
@@ -318,6 +324,7 @@ void *server_meun(void *connfd){
 
 //服务器线程创建
 void serv_ptcreate(){
+    printf("kai");
     int l;
     int ret;
     int i = 0;
@@ -329,8 +336,9 @@ void serv_ptcreate(){
         if((connfd = accept(listenfd,(struct sockaddr*)&cliaddr,&cliaddr_len)) == -1){
             perror("accept");
         }
+        printf("已成功和客户端[Port:%d][Address:%s]建立链接\n",cliaddr.sin_port,cliaddr.sin_addr);
         //创建子线程
-        if((ret = pthread_create(&tid[i++],NULL,serv_ptcreate,(void *)&connfd)) != 0){
+        if((ret = pthread_create(&tid[i++],NULL,server_meun,(void *)&connfd)) != 0){
             perror("pthread_create");
         }
         startnum++;
@@ -353,5 +361,6 @@ void sighandler(){
 int main(){
     //signal(SIGINT,sighandler);
     init_serv();
+    serv_ptcreate();
     return 0;
 }

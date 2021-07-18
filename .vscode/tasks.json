@@ -11,7 +11,9 @@
                 "${fileDirname}/${fileBasenameNoExtension}",
                 "-Wall",
                 "-static-libgcc",
-                "-fcolor-diagnostics"
+                "-fcolor-diagnostics",
+                "-lmysqlclient",
+                "-lpthread"
             ],
             "options": {
                 "cwd": "${fileDirname}"
