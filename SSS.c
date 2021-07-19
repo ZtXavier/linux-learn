@@ -59,7 +59,7 @@ MYSQL_ROW g_row; // 字符串数组，mysql 记录行
 /*=============================================================*/
 /**/const char *g_host_name = "localhost";
 /**/const char *g_user_name = "root";
-/**/const char *g_passwd = "";
+/**/const char *g_passwd = "123456";
 /**/const char *g_db_name = "chat";
 /*=============================================================*/
 char sql[MAX_BUF_SIZE];
@@ -229,7 +229,7 @@ void add_msg( int connfd )
 			perror("add_recv_len2");
 		if( rm->type == MSG_DATA )
 		{
-			memcpy( login.email , rm->data , rm->data_len ); 
+			memcpy( login.email , rm->data , rm->data_len );
 			sm->type = MSG_ACK;
 			sm->data_len = 0;
 			if( send( connfd , (void *)sm , sizeof(struct msg) , 0 ) < 0 ) 
@@ -837,6 +837,7 @@ int main(void)
 {
 	signal(SIGINT,sigfun);
 	init_serv();
+	printf("dada");
 	serv_menu();
 	return 0;
 }

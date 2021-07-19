@@ -14,22 +14,23 @@
 #define   PORT 9988          //端口号
 #define   LINSTENNUM  20      //最大监听数
 #define   MSGSIZE    1024    //最大消息长度
+#define   MAXSIZE    1032
 #define   IP     "127.0.0.1" //ip地址
 
-#define   USER_SIGN    1      //用户注册
-#define   USER_CHANGE  2      //用户更改密码
-#define   USER_LOGIN   4      //用户登陆
-#define   USER_LOGOUT  8      //用户登出
-#define   USER_MASSAGE 16     //用户消息
-#define   USER_AGREE   32     //用户同意
-#define   USER_DISAG   64     //用户拒绝
-#define   USER_PRIVATE 128    //用户私聊
-#define   USER_GROUP   256    //用户群聊
-#define   USER_FILE    512    //用户文件
-#define   USER_NUM     1024   //在线人数
-#define   USER_KICK    2048   //用户踢人
-#define   USER_MASTER  100    //用户群主
-#define   USER_UNMASTER 50    //不是群主
+#define   USER_SIGN     1      //用户注册
+#define   USER_CHANGE   2      //用户更改密码
+#define   USER_LOGIN    3      //用户登陆
+#define   USER_LOGOUT   4      //用户登出
+#define   USER_MASSAGE  5      //用户消息
+#define   USER_AGREE    6      //用户同意
+#define   USER_DISAG    7      //用户拒绝
+#define   USER_PRIVATE  8      //用户私聊
+#define   USER_GROUP    9      //用户群聊
+#define   USER_FILE     10     //用户文件
+#define   USER_NUM      11     //在线人数
+#define   USER_KICK     12     //用户踢人
+#define   USER_MASTER   13    //用户群主
+#define   USER_UNMASTER 14    //不是群主
 #define   USER_
 #define   USER_
 #define   USER_
@@ -64,20 +65,31 @@ user   use;             //消息数据
 msg *rd,*sd;
 mg  *urd,*usd;
 
+
+void sighandler(){
+    free(rd);
+	free(sd);
+	exit(0);
+}
+
+
 int main(){
     int l = 0;
     int choice = 0;
     int connfd;
     struct sockaddr_in servaddr;
-    rd = (msg*)malloc(MSGSIZE);
-    sd = (msg*)malloc(MSGSIZE);
+    rd = (msg*)malloc(MAXSIZE);
+    sd = (msg*)malloc(MAXSIZE);
+
     if((connfd = socket(AF_INET,SOCK_STREAM,0)) < 0){
         perror("socket");
     }
 
+    bzero(&servaddr,sizeof(struct sockaddr_in));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(PORT);
-    inet_pton(AF_INET,"127.0.0.1",(void*)&servaddr.sin_addr);
+    inet_pton(AF_INET,"127.0.0.1",(void*)&servaddr.sin_addr.s_addr);
+
 
     //与服务器建立连接
     printf("正在与服务器建立连接...\n");
@@ -104,22 +116,36 @@ int main(){
         getchar();
         switch(choice){
         case 1:
+            
+            bzero(sd,sizeof(msg));
+            sd->type = choice;
+            if((send(connfd,sd,MAXSIZE,0)) < 0){
+                perror("send_client_sign0");
+            }
+            bzero(rd,sizeof(msg));
+            if((l = recv(connfd,rd,MAXSIZE,0)) < 0){
+                perror("recv_client_login1");
+                getchar();
+                exit(1);
+            }else if(l > 0){
+            if(rd->type == USER_SIGN){   //获得登陆认可
             bzero(sd,sizeof(msg));
             sd->type = USER_MASSAGE;
             printf("请输入用户名：");
             scanf("%s",sd->data);
             getchar();
-            sd->msglen = strlen(sd->data);
-            if((send(connfd,(void*)&sd,sizeof(msg),0)) < 0){
+            sd->msglen = strlen(sd->data) + 1;
+            sd->data[sd->msglen] = '\0';
+            if((send(connfd,sd,MAXSIZE,0)) < 0){
                 perror("send_client_sign1");
             }
             bzero(rd,sizeof(msg));
-            if((l = recv(connfd,(void *)&rd,sizeof(msg),0)) < 0){
+            if((l = recv(connfd,rd,MAXSIZE,0)) < 0){
                 perror("recv_client_login1");
                 getchar();
                 exit(1);
             }else if(l > 0){
-                if(rd->type = USER_DISAG){
+                if(rd->type == USER_DISAG){
                 printf("该用户名已被注册...\n");
                 printf("按任意键继续...\n");
                 getchar();
@@ -139,11 +165,11 @@ int main(){
                     if(strcmp(pass,pass_t) == 0 ){
                     strcpy(sd->data,pass);
                     sd->msglen = strlen(sd->data);
-                    if(send(connfd,(void *)&sd,sizeof(msg),0) < 0){
+                    if(send(connfd,sd,MAXSIZE,0) < 0){
                         perror("send_client_sign2");
                     }
-                    bzero(rd,sizeof(rd));
-                    if((l = recv(connfd,(void *)&rd,sizeof(msg),0)) < 0){
+                    bzero(rd,sizeof(msg));
+                    if((l = recv(connfd,rd,MAXSIZE,0)) < 0){
                         perror("recv_sign2");
                     }
                     if(rd->type == USER_AGREE){
@@ -161,36 +187,36 @@ int main(){
                     }
                 }
                 //输入账户email
-                bzero(sd,sizeof(sd));
+                bzero(sd,sizeof(msg));
                 sd->type = USER_MASSAGE;
                 printf("请输入邮箱：");
                 scanf("%s",sd->data);
                 getchar();
                 sd->msglen = strlen(sd->data);
-                if(send(connfd,(void *)&sd,sizeof(msg),0) < 0){
+                if(send(connfd,sd,MAXSIZE,0) < 0){
                     perror("send_client_sign3");
                 }
-                bzero(rd,sizeof(rd));
-                if((l = recv(connfd,(void*)&rd,sizeof(msg),0)) < 0){
+                bzero(rd,sizeof(msg));
+                if((l = recv(connfd,rd,MAXSIZE,0)) < 0){
                     perror("recv_sigin3");
                 }
                 if(rd->type == USER_AGREE){
-                    printf("电话保存成功！！！\n");
+                    printf("邮箱保存成功！！！\n");
                     printf("按任意键继续...\n");
                     getchar();
                     printf("\033c");
                     //输入用户电话
-                    bzero(sd,sizeof(sd));
+                    bzero(sd,sizeof(msg));
                 sd->type = USER_MASSAGE;
                 printf("请输入电话：");
                 scanf("%s",sd->data);
                 getchar();
                 sd->msglen = strlen(sd->data);
-                if(send(connfd,(void *)&sd,sizeof(msg),0) < 0){
+                if(send(connfd,sd,MAXSIZE,0) < 0){
                     perror("send_client_sign4");
                 }
-                bzero(rd,sizeof(rd));
-                if((l = recv(connfd,(void*)&rd,sizeof(msg),0)) < 0){
+                bzero(rd,sizeof(msg));
+                if((l = recv(connfd,rd,MAXSIZE,0)) < 0){
                     perror("recv_sigin4");
                 }
                 if(rd->type == USER_AGREE){
@@ -202,6 +228,8 @@ int main(){
                }
               }
              }
+            }
+           }
         break;
 
 
