@@ -297,6 +297,8 @@ void p_sign(int connfd){
     }
 }
 
+
+
 //用户登陆函数
 void p_login(int connfd){
     user per;
@@ -662,6 +664,8 @@ void p_change(int connfd){
 
 }
 
+
+//服务器菜单
 void *server_meun(void *connfd){
     sock *info =(sock*)connfd;
     char ip[32];
