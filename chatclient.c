@@ -29,10 +29,10 @@
 #define   USER_FILE     10     //用户文件
 #define   USER_NUM      11     //在线人数
 #define   USER_KICK     12     //用户踢人
-#define   USER_MASTER   13    //用户群主
-#define   USER_UNMASTER 14    //不是群主
-#define   USER_
-#define   USER_
+#define   USER_MASTER   13     //用户群主
+#define   USER_UNMASTER 14     //不是群主
+#define   USER_PHCHG    15     //电话修改
+#define   USER_EMCHG    16     //邮箱修改
 #define   USER_
 #define   USER_
 

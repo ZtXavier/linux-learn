@@ -31,10 +31,10 @@
 #define   USER_FILE     10     //用户文件
 #define   USER_NUM      11     //在线人数
 #define   USER_KICK     12     //用户踢人
-#define   USER_MASTER   13    //用户群主
-#define   USER_UNMASTER 14    //不是群主
-#define   USER_
-#define   USER_
+#define   USER_MASTER   13     //用户群主
+#define   USER_UNMASTER 14     //不是群主
+#define   USER_PHCHG    15     //电话修改
+#define   USER_EMCHG    16     //邮箱修改
 #define   USER_
 #define   USER_
 
@@ -66,7 +66,8 @@ sock infos[50];
 //MYSQL *mysql;                            //用于初始化地址，如果用null的话可能在close时造成系统崩溃
 MYSQL *conn ;                            //MYSQL链接
 MYSQL_RES *res = NULL ;                  //MYSQL记录集
-MYSQL_ROW  row;                          //字符串数组记录行
+MYSQL_ROW  row;
+unsigned int num_fields;                        //字符串数组记录行
 const char *host_name = "127.0.0.1";
 const char *user_name = "root";
 const char *passwd = "123456";
@@ -84,11 +85,15 @@ int listenfd,connfd;
 msg *rvms,*sdms;                   //定义接收，发送消息的结构体指针
 user usr;                                //定义用户的结构体
 struct sockaddr_in servaddr,cliaddr;
+int person_fg = 0;                   //用户登陆状态
+int person_fd;
 
-
-
-
-
+void my_err(const char *err_string, int line)
+{
+	fprintf(stderr, "line:%d ", line);
+	perror(err_string);
+	exit(1);
+}
 
 //执行SQL语句，成功返回0,失败返回-1
 int executesql(const char *sql){
@@ -220,7 +225,7 @@ void p_sign(int connfd){
                 if(send(connfd,sdms,sizeof(msg),0) < 0){
                     perror("login_send3");
                 }
-
+                return;
             }
         }
             //当可以注册时，接收用户的密码信息
@@ -303,7 +308,7 @@ void p_login(int connfd){
         perror("send_log1");
         //接收帐号信息
         bzero(&per,sizeof(per));
-        bzero(rvms,sizeof(rvms));
+        bzero(rvms,sizeof(msg));
         if((len = recv(connfd,rvms,MAXSIZE,0)) < 0){
             perror("recv_log2");
         }
@@ -315,7 +320,7 @@ void p_login(int connfd){
             printf("%d",ret2);
             res = mysql_store_result(conn);
             num_rows = mysql_num_rows(res);
-            //若在数据库中存在，则返还disagree
+            //若在数据库中存在，则返还agree
             if(num_rows != 0){
                 sdms->type = USER_AGREE;
                 sdms->msglen = 0;
@@ -330,32 +335,343 @@ void p_login(int connfd){
                     }
                     return;
             }
+        }
+        //收到帐号信息
+        bzero(&per,sizeof(per));
+        bzero(rvms,sizeof(msg));
+        if((len = recv(connfd,rvms,MAXSIZE,0)) < 0){
+            perror("recv_log3");
+        }if(rvms->type = USER_MASSAGE){
+            memcpy(per.name,rvms->data,rvms->msglen);
+            //在数据库里找到输入的用户名
+            sprintf(sql,"select * from person where name =\'%s\';",per.name);
+            int ret3 = mysql_query(conn,sql);
+            //寻找帐号出现的次数
+            if(num_rows !=  0){
+                sdms->type = USER_AGREE;
+                sdms->msglen = 0;
+                if((send(connfd,sdms,MAXSIZE,0)) < 0){
+                    perror("send_log3");
+                }
+            }else{
+                sdms->type = USER_DISAG;
+                sdms->msglen = 0;
+                if(send(connfd,sdms,MAXSIZE,0) < 0){
+                    perror("login_send3");
+                    return;
+                }
+            }
+            //接收来自客户端的密码信息
+            bzero(rvms,sizeof(msg));
+            if((len = recv( connfd ,rvms,MAXSIZE,0)) < 0){
+                perror("recv_log4");
+            }
+            if(rvms->type == USER_MASSAGE){
+            memcpy(per.name,rvms->data,rvms->msglen);
+            //从数据库中找密码
+            sprintf(sql,"select * from person where name = \'%s\' and passwd =\'%s\';",per.name,per.password);
+            int ret5 = mysql_query(conn,sql);
+            //来统计出现的个数
+            res = mysql_store_result(conn);
+            num_rows = mysql_num_rows(res);
+            //如果出现过则密码正确
+            if(num_rows != 0){
+                sdms->type = USER_AGREE;;
+                sdms->msglen = 0;
+                if(send( connfd,rvms,MAXSIZE ,0 ) < 0){
+                    perror("login_send4");
+                }
+            }else{
+                sdms->type = USER_DISAG;
+                sdms->msglen = 0;
+                if( send(connfd,sdms,MAXSIZE,0) < 0){
+                    perror("login_send5");
+                }
+                return;
+            }
+        }
+        //接收登陆信号
+        bzero(rvms,sizeof(msg));
+        if((len = recv(connfd,rvms,MAXSIZE,0) < 0)){
+            perror("login_send6");
+        }
+        if(rvms->type == USER_LOGIN){
+            //从数据库中找客户端输入的密码，用户名
+            sprintf(sql,"select * from person where name = \'%s\' and passwd = \'%s\';",per.name,per.password);
+            int ret6 = mysql_query(conn,sql);
+            //下面两个函数一起使用，用于统计出现个数
+            res = mysql_store_result(conn);
+            num_rows = mysql_num_rows(res);
+            //如果出现过,则可以登陆
+            if(num_rows == 1){
+            sdms->type = USER_AGREE;
+            sdms->msglen = 0;
+            if( send( connfd , sdms , MAXSIZE , 0 ) < 0){
+                perror("login_send6");
+            }
+               //否则告诉客户端用户登陆已达上限
+            else{
+                sdms->type = USER_DISAG;
+                sdms->msglen = 0;
+                if(send(connfd,sdms,MAXSIZE,0) < 0){
+                    perror("login_send7");
+                }
+                return;
+            }
+            printf("用户 %s 已成功登陆！\n",per.name);
+            //将数据库用户状态设置为在线状态
+            sprintf(sql,"update person set state = %d  where name = \'%s\';",1,per.name);
+            int ret7 = mysql_query(conn,sql);
+            sprintf(sql,"update person set fd = %d where name = \'%s\';",connfd,per.name);
+            int ret8 = mysql_query(conn,sql);
+            if(person_fg == 0){
+                person_fg = 1;
+                person_fd = connfd;
+            }
+            //进入聊天室
+            chat_menu(connfd,per.name);
+        }
+      }
+    }
+  }
+}
 
+//密码找回
+void p_find(int connfd){
+    //开始时可以更改
+    int len;
+    sdms->type = USER_AGREE;
+    sdms->msglen = 0;
+    if(send(connfd,sdms,MAXSIZE,0) < 0){
+        perror("send_fd");
+    }
+    //接收来自客户端的信息
+    bzero(rvms,sizeof(msg));
+    bzero(&usr,sizeof(user));
+    if((len = recv(connfd,rvms,MAXSIZE,0)) < 0){
+    perror("recv_fd1");
+    }
+    if(rvms == USER_MASSAGE){
+        memcpy(usr.name,rvms->data,rvms->msglen);
+        //从数据库中找客户端输入的用户名
+        sprintf(sql,"select * from person where name = \'%s\';",usr.name);
+        int ret = mysql_query(conn,sql);
+        //统计出现的个数
+        res = mysql_store_result(conn);
+        num_rows = mysql_num_rows(res);
+        //如果出现过则帐号存在
+        if( num_rows != 0){
+            sdms->type = USER_AGREE;
+            sdms->msglen = 0;
+            if(send(connfd,sdms,MAXSIZE,0) < 0){
+                perror("send_fd2");
+            }
+        }else{
+            sdms->type = USER_DISAG;
+            sdms->msglen = 0;
+            if(send(connfd,sdms,MAXSIZE,0) < 0){
+                perror("send_fd3");
+            }
         }
 
 
+        //接收用户的邮箱或电话来匹配
+        bzero(rvms,sizeof(msg));
+        if((len = recv(connfd,rvms,MAXSIZE,0)) < 0){
+            perror("recv_fd2");
+        }
+        if(rvms->type == USER_EMCHG){
+            memcpy(usr.email,rvms->data,rvms->msglen);
+            //从数据库中找客户端输入的邮箱和用户名
+            sprintf(sql,"select * from person where name = \'%s\' and email = \'%s\';",usr.name,usr.email);
+            int ret1 = mysql_query(conn,sql);
+            res = mysql_store_result(conn);
+            num_rows = mysql_num_rows(res);
+            //如果出现过则邮箱匹配正确
+            if(num_rows != 0){
+                sdms->type = USER_AGREE;
+                sdms->msglen = 0;
+                if(send(connfd,sdms,MAXSIZE,0) < 0){
+                    perror("send_fd4");
+                }
+            }else{
+                sdms->type = USER_DISAG;
+                sdms->msglen = 0;
+                if(send(connfd,sdms,MAXSIZE,0) < 0){
+                    perror("send_fd5");
+                }
+                return;
+            }
+        }else if(rvms->type == USER_PHCHG){
+        memcpy(usr.phonenum,rvms->data,rvms->msglen);
+            //从数据库中找客户端输入的邮箱和用户名
+            sprintf(sql,"select * from person where name = \'%s\' and phone = \'%s\';",usr.name,usr.phonenum);
+            int ret1 = mysql_query(conn,sql);
+            res = mysql_store_result(conn);
+            num_rows = mysql_num_rows(res);
+            //如果出现过则邮箱匹配正确
+            if(num_rows != 0){
+                sdms->type = USER_AGREE;
+                sdms->msglen = 0;
+                if(send(connfd,sdms,MAXSIZE,0) < 0){
+                    perror("send_fd5");
+                }
+            }else{
+                sdms->type = USER_DISAG;
+                sdms->msglen = 0;
+                if(send(connfd,sdms,MAXSIZE,0) < 0){
+                    perror("send_fd6");
+                }
+                return;
+            }
+        }
+        //向客户端发送密码
+        bzero(sdms,sizeof(msg));
+        sprintf(sql,"select * from person where name = \'%s\';",usr.name);
+        int ret2 = mysql_query(conn,sql);
+        res = mysql_store_result(conn);
+        num_fields = mysql_num_fields(conn);
+        row = mysql_fetch_row(res);
+        if(row[2]){
+        sdms->type = USER_AGREE;
+        strcmp(sdms->data,row[2]);
+        sdms->msglen = strlen(row[2])+1;
+        }else{
+            sdms->type = USER_DISAG;
+            sdms->msglen = 0;
+            printf("%-10s",row[2]);
+        }
+        if((send(connfd,sdms,MAXSIZE,0)) < 0){
+            perror("recv_log4");
+        }
+        
+    }
+}
+
+//修改密码
+void p_change(int connfd){
+    int len;
+    //可以修改
+    sdms->type = USER_AGREE;
+    sdms->msglen = 0;
+    if(send(connfd,sdms,MAXSIZE,0) < 0){
+        perror("send_chg1");
+    }
+    //接收来自客户端的信息
+    bzero(rvms,sizeof(msg));
+    bzero(&usr,sizeof(user));
+    if((len = recv(connfd,rvms,MAXSIZE,0)) < 0){
+    perror("recv_chg1");
+    }
+    if(rvms == USER_MASSAGE){
+        memcpy(usr.name,rvms->data,rvms->msglen);
+        //从数据库中找客户端输入的用户名
+        sprintf(sql,"select * from person where name = \'%s\';",usr.name);
+        int ret = mysql_query(conn,sql);
+        //统计出现的个数
+        res = mysql_store_result(conn);
+        num_rows = mysql_num_rows(res);
+        //如果出现过则帐号存在
+        if( num_rows != 0){
+            sdms->type = USER_AGREE;
+            sdms->msglen = 0;
+            if(send(connfd,sdms,MAXSIZE,0) < 0){
+                perror("send_chg2");
+            }
+        }else{
+            sdms->type = USER_DISAG;
+            sdms->msglen = 0;
+            if(send(connfd,sdms,MAXSIZE,0) < 0){
+                perror("send_chg3");
+            }
+        }
+
+
+        //接收用户的邮箱或电话来匹配
+        bzero(rvms,sizeof(msg));
+        if((len = recv(connfd,rvms,MAXSIZE,0)) < 0){
+            perror("recv_chg2");
+        }
+        if(rvms->type == USER_EMCHG){
+            memcpy(usr.email,rvms->data,rvms->msglen);
+            //从数据库中找客户端输入的邮箱和用户名
+            sprintf(sql,"select * from person where name = \'%s\' and email = \'%s\';",usr.name,usr.email);
+            int ret1 = mysql_query(conn,sql);
+            res = mysql_store_result(conn);
+            num_rows = mysql_num_rows(res);
+            //如果出现过则邮箱匹配正确
+            if(num_rows != 0){
+                sdms->type = USER_AGREE;
+                sdms->msglen = 0;
+                if(send(connfd,sdms,MAXSIZE,0) < 0){
+                    perror("send_chg4");
+                }
+            }else{
+                sdms->type = USER_DISAG;
+                sdms->msglen = 0;
+                if(send(connfd,sdms,MAXSIZE,0) < 0){
+                    perror("send_chg5");
+                }
+                return;
+            }
+        }else if(rvms->type == USER_PHCHG){
+        memcpy(usr.phonenum,rvms->data,rvms->msglen);
+            //从数据库中找客户端输入的邮箱和用户名
+            sprintf(sql,"select * from person where name = \'%s\' and phone = \'%s\';",usr.name,usr.phonenum);
+            int ret1 = mysql_query(conn,sql);
+            res = mysql_store_result(conn);
+            num_rows = mysql_num_rows(res);
+            //如果出现过则邮箱匹配正确
+            if(num_rows != 0){
+                sdms->type = USER_AGREE;
+                sdms->msglen = 0;
+                if(send(connfd,sdms,MAXSIZE,0) < 0){
+                    perror("send_chg5");
+                }
+            }else{
+                sdms->type = USER_DISAG;
+                sdms->msglen = 0;
+                if(send(connfd,sdms,MAXSIZE,0) < 0){
+                    perror("send_chg6");
+                }
+                return;
+        }
     }
 
 
+        //接收客户端传来的新密码
+        bzero(rvms,sizeof(msg));
+        if((len = recv(connfd,rvms,MAXSIZE,0)) < 0){
+            perror("recv_log4");
+        }
+        if(rvms->type == USER_MASSAGE){
+            memcpy(usr.password,rvms->data,rvms->msglen);
+            put("password: ");
+            put(usr.password);
+            //匹配帐号
+            sprintf(sql,"update person set passwd = \'%s\' where name = \'%s\';",usr.password,usr.name);
+            int ret2 = mysql_query(conn,sql);
+            if(ret2 == 0){
+                puts("change success");
+            }else{
+                puts("change failed");
+            }
+
+        }
+    }
+
 }
-
-
-
-
-
-
 
 void *server_meun(void *connfd){
     sock *info =(sock*)connfd;
     char ip[32];
     int flag = 0;
-    printf("客户端的IP：%s,port: %d\n",
+    printf("客户端[IP：%s],[port: %d]已链接...\n",
     inet_ntop(AF_INET,&info->servaddr.sin_addr.s_addr,ip,sizeof(ip)),
     ntohs(info->servaddr.sin_port));
     while(1){
-        
         bzero(rvms,sizeof(msg));
-       int len = recv(info->connfd,rvms,MAXSIZE,0);
+        int len = recv(info->connfd,rvms,MAXSIZE,0);
         if(len < 0){
             perror("recv");
             exit(1);
@@ -365,32 +681,25 @@ void *server_meun(void *connfd){
         }
     switch (rvms->type)
     {
-    case 1:   //注册
+    case 1:     //注册
         p_sign(info->connfd);
         break;
-    case 3:    //找回密码
+    case 2:     //登陆
+        p_login(info->connfd);
         break;
-    case 0:    //退出
+    case 3:     //修改密码
+        p_change(info->connfd);
         break;
-    case 2:    //登陆
+    case 0:     //退出
         break;
     default:
         break;
     }
-   }
-   close(info->connfd);
-   info->connfd = -1;
-   return NULL;
+    }
+    close(info->connfd);
+    info->connfd = -1;
+    return NULL;
 }
-
-
-
-
-
-
-
-
-
 
 //服务器线程创建
 // void serv_ptcreate(){
