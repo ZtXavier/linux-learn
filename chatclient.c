@@ -68,6 +68,7 @@ mg  *urd,*usd;
 int l = 0;
 int choice = 0;
 int connfd;
+int flag = 1;
 
 void my_err(const char *err_string, int line)
 {
@@ -92,6 +93,7 @@ void client_menu(){
 
     while(1){
         while(1){
+        
         printf("\t***************************************\n");
         printf("\t************欢迎来到登录界面***********\n");
         printf("\t***************************************\n");
@@ -126,7 +128,7 @@ void client_menu(){
             printf("请输入用户名：");
             scanf("%s",sd->data);
             getchar();
-            sd->msglen = strlen(sd->data) + 1;
+            sd->msglen = strlen(sd->data);
             sd->data[sd->msglen] = '\0';
             if((send(connfd,sd,MAXSIZE,0)) < 0){
                 perror("send_client_sign1");
@@ -243,12 +245,12 @@ void client_menu(){
             if(rd->type == USER_AGREE){
                 bzero(sd,sizeof(msg));
                 sd->type = USER_MASSAGE;
-                printf("请输入您的用户名：(不要超过20位)");
+                printf("请输入您的用户名：");
                 scanf("%s",sd->data);
                 getchar();
-                sd->msglen = strlen(sd->data)+1;
+                sd->msglen = strlen(sd->data);
                 sd->data[sd->msglen] = '\0';
-                if(send(connfd,sd->data,MAXSIZE,0) < 0){
+                if(send(connfd,sd,MAXSIZE,0) < 0){
                     my_err("send_client_login",__LINE__);
                 }
                 bzero(rd,sizeof(msg));
@@ -258,23 +260,31 @@ void client_menu(){
                     printf("服务器已断开...");
                     getchar();
                 }
+                if(rd->type == USER_AGREE){
+
                 bzero(sd,sizeof(msg));
+
                 sd->type = USER_MASSAGE;
-                printf("请输入您的密码：(不要超过20位)");
+                printf("请输入您的密码：");
                 scanf("%s",sd->data);
                 getchar();
-                sd->msglen = strlen(sd->data) + 1;
+                sd->msglen = strlen(sd->data);
                 sd->data[sd->msglen] = '\0';
-                if(send(connfd,sd->data,MAXSIZE,0) < 0){
+                if(send(connfd,sd,MAXSIZE,0) < 0){
                     my_err("send_client_login",__LINE__);
                 }
+
                 bzero(rd,sizeof(msg));
+
                 if((l = recv(connfd,rd,MAXSIZE,0))< 0 ){
                     my_err("recv_client_login",__LINE__);
                 }
+
+
                 if(rd->type == USER_AGREE){
                     printf("密码正确！！！\n");
                     printf("正在请求登陆...\n");
+
                     bzero(sd,sizeof(msg));
                     sd->type = USER_LOGIN;
                     sd->msglen = 0;
@@ -284,16 +294,25 @@ void client_menu(){
                     bzero(rd,sizeof(msg));
                     if((l = recv(connfd,rd,MAXSIZE,0)) < 0){
                         my_err("recv_client_login",__LINE__);
+                    }else if(l == 0){
+                        printf("服务器已断开...");
                     }
                     if(rd->type == USER_AGREE){
                         printf("登陆成功！！！\n");
                         my_chatroom();
                     }else{
                         printf("登陆失败！！！");
-                        return;
+                        continue;
                     }
+                }else if(rd->type == USER_DISAG){
+                    printf("密码错误！！！");
+                    getchar();
                 }
+            }else{
+                printf("没有找到用户信息\n");
+                getchar();
             }
+        }
         break;
         
         case 3://用户修改密码
@@ -316,6 +335,8 @@ void client_menu(){
                 printf("请输入您的用户名：");
                 scanf("%s",sd->data);
                 getchar();
+                sd->msglen = strlen(sd->data);
+                sd->data[sd->msglen] = '\0';
                 if(send(connfd,sd,MAXSIZE,0) < 0){
                     my_err("send",__LINE__);
                 }
@@ -327,7 +348,6 @@ void client_menu(){
                 getchar();
             }
             if(rd->type == USER_AGREE){
-                while(1){
                 printf("\t******************\n");
                 printf("\t*****修改密码*****\n");
                 printf("\t******************\n");
@@ -339,7 +359,7 @@ void client_menu(){
                 printf("请选择：   (1 or 2 or 0)\n");
                 scanf("%d",&choice);
                 getchar();
-                if(choice != 1|| choice != 2 || choice != 0){
+                if((choice != 1)&&(choice != 2)&&(choice != 0)){
                     printf("输入非法数字，请重新输入！\n");
                     printf("按任意键返回...\n");
                     getchar();
@@ -347,37 +367,139 @@ void client_menu(){
                 }
                 switch(choice){
                     case 1:
-                        bzero(connfd,sizeof(msg));
+                        bzero(sd,sizeof(msg));
                         sd->type = USER_EMCHG;
                         printf("请输入您的邮箱：");
                         scanf("%s",sd->data);
                         getchar();
-
-                      
+                        sd->msglen = strlen(sd->data);
+                        sd->data[sd->msglen] = '\0';
+                        if(send(connfd,sd,MAXSIZE,0) < 0){
+                            my_err("send",__LINE__);
+                        }
+                        bzero(rd,sizeof(msg));
+                        if((l = recv(connfd,rd,MAXSIZE,0))< 0){
+                            my_err("recv",__LINE__);
+                        }else if(0 == l){
+                            printf("与服务器断开连接...");
+                        }if(rd->type == USER_AGREE){
+                            bzero(sd,sizeof(msg));
+                            sd->type = USER_MASSAGE;
+                            do{
+                                printf("请输入新的密码：(不超过20位)");
+                                scanf("%s",sd->data);
+                                getchar();
+                            if(strlen(sd->data) > 20){
+                                printf("输入非法\n");
+                                getchar();
+                                printf("\033c");
+                                continue;
+                            }
+                            else
+                                break;
+                            }while(1);
+                            sd->msglen = strlen(sd->data);
+                            sd->data[sd->msglen] = '\0';
+                            if(send(connfd,sd,MAXSIZE,0) < 0){
+                                my_err("send",__LINE__);
+                            }
+                            bzero(rd,sizeof(msg));
+                            if((l = recv(connfd,rd,MAXSIZE,0)) < 0){
+                                my_err("recv",__LINE__);
+                            }
+                            if(rd->type == USER_AGREE){
+                                printf("%s",sd->data);
+                            }else if(rd->type == USER_DISAG){
+                                printf("%s",sd->data);
+                            }
+                        }else{
+                            printf("邮箱错误，修改失败\n");
+                            getchar();
+                        }
                     break;
 
+                    case 2:
+                        bzero(sd,sizeof(msg));
+                        sd->type = USER_PHCHG;
+                        printf("请输入您的电话：");
+                        scanf("%s",sd->data);
+                        getchar();
+                        sd->msglen = strlen(sd->data);
+                        sd->data[sd->msglen] = '\0';
+                        if(send(connfd,sd,MAXSIZE,0) < 0){
+                            my_err("send",__LINE__);
+                        }
+                        bzero(rd,sizeof(msg));
+                        if((l = recv(connfd,rd,MAXSIZE,0))< 0){
+                            my_err("recv",__LINE__);
+                        }else if(0 == l){
+                            printf("与服务器断开连接...");
+                        }if(rd->type == USER_AGREE){
+                            bzero(sd,sizeof(msg));
+                            sd->type = USER_MASSAGE;
+                            do{
+                                printf("请输入新的密码：(不超过20位)");
+                                scanf("%s",sd->data);
+                                getchar();
+                            if(strlen(sd->data) > 20){
+                                printf("输入非法\n");
+                                getchar();
+                                printf("\033c");
+                                continue;
+                            }
+                            else
+                                break;
+                            }while(1);
+                            sd->msglen = strlen(sd->data);
+                            sd->data[sd->msglen] = '\0';
+                            if(send(connfd,sd,MAXSIZE,0) < 0){
+                                my_err("send",__LINE__);
+                            }
+                            bzero(rd,sizeof(msg));
+                            if((l = recv(connfd,rd,MAXSIZE,0)) < 0){
+                                my_err("recv",__LINE__);
+                            }
+                            if(rd->type == USER_AGREE){
+                                printf("%s",sd->data);
+                                getchar();
+                            }else if(rd->type == USER_DISAG){
+                                printf("%s",sd->data);
+                                getchar();
+                            }
+                        }else{
+                            printf("电话错误，修改失败\n");
+                            getchar();
+                        }
+                    break;
                     case 0:
                     return;
-                }
-                }
+                
             }
-
-            }
-
+        }else{
+            printf("没有找到该用户！！！\n");
+            printf("按任意键退出\n");
+            getchar();
+            return;
+        }
+    }
         break;
 
 
 
 
 
+        case 4:
+        
 
+
+        break;
 
         case 0:
-        return 0;
+        return;
         break;
         }
     }
-}
+  }
 }
 
 
