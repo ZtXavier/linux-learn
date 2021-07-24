@@ -18,15 +18,6 @@
 recv_datas  *send_data;
 recv_datas  *recv_data;
 
-
-
-
-
-
-
-
-
-
 void my_err(const char *err_string, int line)
 {
 	fprintf(stderr, "line:%d ", line);
@@ -62,7 +53,7 @@ void second_menu(void){
         printf("\t*****                             *****\n");
         printf("\t*****        4.找回密码           *****\n");
         printf("\t*****                             *****\n");
-        printf("\t*****        0.退出               *****\n");
+        printf("\t*****        9.退出               *****\n");
         printf("\t*****                             *****\n");
         printf("\t***************************************\n");
 
@@ -73,6 +64,7 @@ void *read_mission(void*arg){
     int   connfd = *(int*)arg;
     int   choice;
     int   i;
+    int   ret;
     char  ch;
     char  password1[24],password2[24];
     send_data = (recv_datas*)malloc(sizeof(recv_datas));
@@ -92,14 +84,14 @@ void *read_mission(void*arg){
             printf("please input password: ");
             i = 0;
             while(1){
-                scanf("%c",&ch);
-                //printf("\b");
-                if(ch == '\n'){
-                    send_data->read_buff[i] = '\0';
-                    break;
-                }
-                //printf("*");
-                send_data->read_buff[i++] = ch;
+            scanf("%c",&ch);
+            //printf("\b");
+            if(ch == '\n'){
+            send_data->read_buff[i] = '\0';
+            break;
+            }
+            //printf("*");
+            send_data->read_buff[i++] = ch;
             }
             printf("\n");
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
@@ -121,24 +113,24 @@ void *read_mission(void*arg){
                 getchar();
                 printf("please input passwd: ");
                 while(1){
-                    scanf("%c", &ch);
-                    if(ch == '\n'){
-                        password1[i] = '\0';
-                        break;
-                    }
-                    password1[i++] = ch;
-                    //printf("*");
+                scanf("%c", &ch);
+                if(ch == '\n'){
+                password1[i] = '\0';
+                break;
+                }
+                password1[i++] = ch;
+                //printf("*");
                 }
                 printf("\n");
                 printf("please input passwd again: ");
                 i = 0;
                 while(1){
-                    scanf("%c", &ch);
-                    if(ch == '\n'){
-                        password2[i] = '\0';
-                        break;
-                    }
-                    password2[i++] = ch;
+                scanf("%c", &ch);
+                if(ch == '\n'){
+                password2[i] = '\0';
+                break;
+                }
+                password2[i++] = ch;
                     //printf("*");
                 }
                 printf("\n");
@@ -180,11 +172,11 @@ void *read_mission(void*arg){
         break;
         
         case 4:
-            send_data->type = USER_OUT;
-            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-            my_err("send",__LINE__);
+        send_data->type = USER_OUT;
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
         }
-            pthread_exit(0);
+        pthread_exit(0);
         break;
 
         default:
@@ -195,8 +187,8 @@ void *read_mission(void*arg){
 
         }if((choice > 4) || (choice < 1))    continue;
         else if (choice == 1) {
-            if (strcmp(send_data->write_buff, "error") == 0) {
-                printf("密码错误或账号错误!!\n");
+            if (strcmp(send_data->write_buff, "id error") == 0) {
+                printf("ID or PASSWD error!!!\n");
                 printf("按任意键继续.....\n");
                 getchar();
                 continue;
@@ -221,10 +213,63 @@ void *read_mission(void*arg){
     scanf("%d",&choice);
     getchar();
     switch(choice){
-    case 1:
-    
+    case 1:         //修改密码
+    send_data->type = USER_CHANGE;
+    printf("please input your original passwd: ");
+    i = 0;
+    while(1){
+    scanf("%c",&ch);
+    if(ch == '\n'){
+    send_data->read_buff[i] = '\0';
+    break;
+    }
+    send_data->read_buff[i++] = ch;
+
+    }
+    printf("\n");
+    printf("please input your new passwd: ");
+    i = 0;
+    while(1){
+    scanf("%c",&ch);
+    if(ch == '\n'){
+    send_data->write_buff[i] = '\0';
+    break;
+    }
+    send_data->write_buff[i++] = ch;
+
+    }
+    if((ret = send(connfd,send_data,sizeof(recv_datas),0)) < 0){
+        my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co,&cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    printf("%s\n",send_data->write_buff);
+    if(strcmp(send_data->write_buff,"success") == 0){
+        printf("change passwd success!!!\n");
+        printf("按任意键继续...\n");
+        getchar();
+    }else if(strcmp(send_data->write_buff,"error") == 0){
+        printf("original passwd error");
+        printf("按任意键继续...\n");
+        getchar();
+    }
+    bzero(send_data->write_buff,sizeof(send_data->write_buff));
+    bzero(send_data->read_buff,sizeof(send_data->read_buff));
     break;
 
+
+
+
+
+
+    case 9:         //二级界面退出
+    send_data->type = USER_OUT;
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        pthread_exit(0);
+        break;
     }
     }
 }
@@ -265,6 +310,22 @@ void *write_mission(void*arg){
             break;
 
             case USER_FIND:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case ID_ERROR:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case USER_CHANGE:
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             pthread_mutex_lock(&cl_mu);

@@ -150,6 +150,36 @@ int user_sign(recv_datas *mybag,MYSQL mysql){
 }
 
 
+int user_change(recv_datas *mybag,MYSQL mysql){
+    MYSQL_RES  *res = NULL;
+    MYSQL_ROW   row;
+    recv_datas *recv_data = mybag;
+    char        sql[MYSQL_MAX];
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from person where id = \'%d\';",recv_data->send_id);
+    pthread_mutex_lock(&mutex);
+    mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    if((row = mysql_fetch_row(res))){
+        if(strcmp(recv_data->read_buff,row[2]) == 0){
+            //recv_data->recvfd = atoi(row[4]);
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"update person set passwd = \'%s\' where id = \'%d\';",recv_data->write_buff,recv_data->send_id);
+            mysql_query(&mysql,sql);
+            pthread_mutex_unlock(&mutex);
+            return 1;
+        }else{
+            pthread_mutex_unlock(&mutex);
+            return 0;
+        }
+    }else{
+        pthread_mutex_unlock(&mutex);
+        return 0;
+    }
+
+
+}
+
 void *ser_deal(void *arg){
     int i;
     MYSQL mysql;
@@ -190,8 +220,16 @@ void *ser_deal(void *arg){
         }
         }
         break;
+
         case USER_CHANGE:
-        
+        if(!user_change(recv_buf,mysql)){
+            strcpy(recv_buf->write_buff,"error");
+        }else{
+            strcpy(recv_buf->write_buff,"success");
+        }
+        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
         break;
     }
 close_mysql(mysql);
@@ -331,12 +369,7 @@ int main(){
                     sprintf(sql,"update person set fd = \'%d\' where id = \'%d\';",events[i].data.fd,recv_buf.send_id);
                     mysql_query(myconn,sql);
                     pthread_mutex_unlock(&mutex);
-                    
-                 
-
             }
-
-
                     recv_buf.recvfd = events[i].data.fd;
                     recv_datas *bf;
                     bf = (recv_datas*)malloc(sizeof(recv_datas));
