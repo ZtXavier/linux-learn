@@ -45,13 +45,15 @@ void second_menu(void){
         printf("\t***************************************\n");
         printf("\t********welcome to chatroom************\n");
         printf("\t***************************************\n");
-        printf("\t*****        1.修改密码           *****\n");
+        printf("\t*****        1.私聊               *****\n");
         printf("\t*****                             *****\n");
-        printf("\t*****        2.注册               *****\n");
+        printf("\t*****        2.加好友             *****\n");
         printf("\t*****                             *****\n");
-        printf("\t*****        3.找回密码           *****\n");
+        printf("\t*****        3.删好友             *****\n");
         printf("\t*****                             *****\n");
-        printf("\t*****        4.找回密码           *****\n");
+        printf("\t*****        3.查看好友列表       *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        8.修改密码           *****\n");
         printf("\t*****                             *****\n");
         printf("\t*****        9.退出               *****\n");
         printf("\t*****                             *****\n");
@@ -213,7 +215,63 @@ void *read_mission(void*arg){
     scanf("%d",&choice);
     getchar();
     switch(choice){
-    case 1:         //修改密码
+    case 1:
+    send_data->type = SEND_INFO;
+    printf("please input your friend id: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    printf("\t--可以与->%d<-好友聊天--\n",send_data->recv_id);
+    while(1){
+        scanf("%s",send_data->read_buff);
+        if(strcmp(send_data->read_buff,"#over#") == 0){
+            printf("\t--与->%d<-好友聊天结束--\n",send_data->recv_id);
+            break;
+        }
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+
+    }
+
+    break;
+
+    case 2:
+    send_data->type = ADD_FRIEND;
+    printf("请输入想加好友的id：");
+    scanf("%s",send_data->recv_id);
+    getchar();
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co,&cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"success") == 0){
+        printf("发送成功！等待对方确认...\n");
+        printf("按任意键继续...");
+        getchar();
+    }else{
+        printf("对方已经是你的好友或者对方不存在!!!\n");
+        printf("按任意键继续...\n");
+        getchar();
+    }
+    bzero(send_data->write_buff,sizeof(send_data->write_buff));
+    break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    case 8:         //修改密码
     send_data->type = USER_CHANGE;
     printf("please input your original passwd: ");
     i = 0;
@@ -258,11 +316,6 @@ void *read_mission(void*arg){
     bzero(send_data->read_buff,sizeof(send_data->read_buff));
     break;
 
-
-
-
-
-
     case 9:         //二级界面退出
     send_data->type = USER_OUT;
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
@@ -284,21 +337,21 @@ void *write_mission(void*arg){
         }
         switch(recv_data->type){
             case USER_OUT:
-                printf("客户端退出...");
-                pthread_exit(0);
-                break;
+            printf("客户端退出...");
+            pthread_exit(0);
+            break;
 
             case USER_LOGIN:
-                strcpy(send_data->send_name,recv_data->send_name);
-                bzero(send_data->write_buff,sizeof(send_data->write_buff));
-                strcpy(send_data->write_buff,recv_data->write_buff);
-                send_data->sendfd = recv_data->recvfd;
+            strcpy(send_data->send_name,recv_data->send_name);
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            send_data->sendfd = recv_data->recvfd;
 
 
-                pthread_mutex_lock(&cl_mu);
-                pthread_cond_signal(&cl_co);
-                pthread_mutex_unlock(&cl_mu);
-                break;
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
 
             case USER_SIGN:
             send_data->send_id = recv_data->send_id;
@@ -332,10 +385,19 @@ void *write_mission(void*arg){
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
+
+            case ADD_FRIEND:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case RECV_FMES:
+            break;
         }
-
-
-}
+    }
 }
 
 

@@ -54,7 +54,6 @@ int user_find(recv_datas *mybag,MYSQL mysql){
     MYSQL_ROW  row;
     recv_datas *data = mybag;
     char       sql[MYSQL_MAX];
-
     pthread_mutex_lock(&mutex);
     bzero(sql,sizeof(sql));
     sprintf(sql,"select * from person where id = \'%d\';",data->send_id);
@@ -102,10 +101,10 @@ int user_login(recv_datas *mybag,MYSQL mysql){
     if(row == NULL){
         pthread_mutex_unlock(&mutex);
         return -1;
-    }else if(strcmp(row[2],data->read_buff) == 0){//判断密码
-        strcpy(data->send_name,row[1]);
-        bzero(sql,sizeof( sql ));
-        data->recvfd = atoi(row[4]);//登录之后更新你的fd
+    }else if(strcmp(row[2],data->read_buff) == 0){          //判断密码
+        strcpy(data->send_name,row[1]);                     //将昵称写入缓冲区好友申请时发送给对方
+        bzero(sql,sizeof(sql));
+        data->recvfd = atoi(row[4]);
         sprintf(sql,"update person set state = \'1\' where id = \'%d\';",data->send_id);
         mysql_query(&mysql,sql);
         mysql_free_result(res);
@@ -135,7 +134,7 @@ int user_sign(recv_datas *mybag,MYSQL mysql){
     }
     fread(&idnums,sizeof(int),1,fp);
     sprintf(sql,"insert into person values(\'%d\',\'%s\',\'%s\',\'%d\',\'%d\');",idnums,recv_data->send_name,recv_data->read_buff,0,recv_data->recvfd);
-    
+
     recv_data->send_id = idnums;
     idnums -= 1 ;
     mysql_query(&mysql,sql);
@@ -148,7 +147,6 @@ int user_sign(recv_datas *mybag,MYSQL mysql){
     fclose(fp);
     pthread_mutex_unlock(&mutex);
 }
-
 
 int user_change(recv_datas *mybag,MYSQL mysql){
     MYSQL_RES  *res = NULL;
@@ -176,6 +174,49 @@ int user_change(recv_datas *mybag,MYSQL mysql){
         pthread_mutex_unlock(&mutex);
         return 0;
     }
+
+
+}
+
+int add_friend(recv_datas *mybag,MYSQL mysql){
+    MYSQL_RES *res = NULL;
+    MYSQL_ROW  row_find,row;
+    recv_datas *recv_data = mybag;
+    char        sql[MYSQL_MAX];
+    char        buf[100];
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from person where id = \'%d\';",recv_data->recv_id);
+    pthread_mutex_lock(&mutex);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row_find = mysql_fetch_row(res);
+    if(row_find == NULL){          //若查不到说明无此人,若查到则拿到该人的所有信息
+    bzero(recv_data->write_buff,sizeof(recv_data->write_buff));
+    strcpy(recv_data->write_buff,"fail");
+    pthread_mutex_unlock(&mutex);
+    return 0;
+    }else{
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from friends where your_id = \'%d\' and friend_id = \'%d\';",recv_data->send_id,recv_data->recv_id);
+    ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row != NULL){               //如果已经是好友则返回
+    pthread_mutex_unlock(&mutex);
+    return 0;
+    }else{                        //在此处要考虑对方在线情况做离线缓存
+    bzero(buf,sizeof(buf));
+    sprintf(buf,"[帐号:%d][昵称:%s]该用户向您发来好友申请",recv_data->send_id,recv_data->send_name);
+    if(atoi(row_find[3]) == 1){
+    strcpy(recv_data->write_buff,buf);
+    
+    }else{
+    
+    }
+    
+    }
+}
+    pthread_mutex_unlock(&mutex);
 
 
 }
@@ -230,6 +271,10 @@ void *ser_deal(void *arg){
         if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
             my_err("send",__LINE__);
         }
+        break;
+
+        case ADD_FRIEND:
+        add_friend(recv_buf,mysql);
         break;
     }
 close_mysql(mysql);

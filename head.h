@@ -23,19 +23,21 @@
 #define   MAXEVENTS   1024   //最大事件数
 
 
-#define MAX_FRIEND 500
-#define USER_LOGIN 1              // 登录
-#define USER_SIGN 2         // 注册
-#define USER_FIND 3      // 找回密码
-#define USER_CHANGE 4    // 修改密码
-// 添加好友
-#define ADD_FRIEND 5
-// 删除好友
-#define DEL_FRIEND 6
-// 查看好友列表
-#define LOOK_LIST 7
-// 发消息
-#define SEND_FMES 8
+#define FRIENDS_MAXNUM  100
+#define USER_LOGIN  1        // 登录
+#define USER_SIGN   2        // 注册
+#define USER_FIND   3        // 找回密码
+#define USER_CHANGE 4        // 修改密码
+#define SEND_INFO   5        // 发消息
+#define ADD_FRIEND  6        // 加好友
+#define DEL_FRIEND  7        // 删好友
+#define LOOK_FRI_LS 8        // 查看好友状态
+
+
+
+
+
+
 // 创建群
 #define CREATE_GROUP 9
 // 加入群
@@ -96,15 +98,38 @@ typedef struct{
     int     recvfd;
     int     send_id;
     int     recv_id;
-    char    send_name[20];
-    char    recv_name[20];
+    char    send_name[24];
+    char    recv_name[24];
     char    read_buff[MAX_MESSAGE];
     char    write_buff[MAX_MESSAGE];
 }recv_datas;
 
+typedef struct friends{
+    char   friend_nickname[FRIENDS_MAXNUM][24];
+    int    friend_id[FRIENDS_MAXNUM];
+    int    friend_state[FRIENDS_MAXNUM];
+    int    friend_num;
+}FRIENDS;
 
+typedef struct message{
+    int     num;
+    int     send_id[512];
+    int     recv_id[512];
+    char    message[512][MAX_MESSAGE];
+}MSG;
 
-
+typedef struct box_message{
+    struct BOX_MSG *next;
+    int     recv_id;
+    int     send_id[512];
+    int     fri_pls_id[512];
+    int     recv_msgnum;
+    int     fri_pls_num;
+    char    send_msg[MAX_MESSAGE];
+    char    send_pls[MAX_MESSAGE];
+}BOX_MSG;
+BOX_MSG *head;
+BOX_MSG *tail;
 
 
 
