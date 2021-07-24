@@ -700,6 +700,12 @@ void sighandler(){
 }
 
 int main(){
+
+
+
+
+
+    
     //int listenfd,connfd;
     struct   sockaddr_in servaddr;
     int      optval;
@@ -746,14 +752,16 @@ setsockopt(listenfd,SOL_SOCKET,SO_KEEPALIVE,(void*)&optval,sizeof(int));
 
 int epfd = epoll_create(1);
 
-int max = sizeof(infos)/sizeof(infos[0]);
+// int max = sizeof(infos)/sizeof(infos[0]);
 
-for(int i = 0;i < max;i++){
-    bzero(&infos[i],sizeof(infos[i]));
-    infos[i].connfd = -1;
-}
+// for(int i = 0;i < max;i++){
+//     bzero(&infos[i],sizeof(infos[i]));
+//     infos[i].connfd = -1;
+// }
 
-int infolen = sizeof(sock);
+// int infolen = sizeof(sock);
+int socklen = sizeof(struct sockaddr_in);
+
 
 while(1){
 

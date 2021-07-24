@@ -11,17 +11,17 @@ int    msglen;          //消息长度
 char   data[MSGSIZE];   //消息数据
 }msg;
 int main(void){
-   msg *r =(msg*)malloc(MAXSIZE);
-   scanf("%s",r->data);
-    // int i;
-    // int sum = 0;
-    // for(i = 0;i < 10; i++){
-
-    //     sum += i;
-    // }
-    // printf("%d\n",sum);
-   r->data[strlen(r->data)] = '\0';
-    printf("%d\n",strlen(r->data)+1);
-
+    char ch;
+    char name[10];
+    int i = 0;
+    while(1){
+    scanf("%c",&ch);
+    printf("\b");
+    if(ch == '\n'){
+        printf("js");
+        break;
+    }
+    name[i++] = ch;
+    }
     return 0;
 }

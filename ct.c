@@ -624,7 +624,7 @@ int main(){
     //与服务器建立连接
     printf("正在与服务器建立连接...\n");
     if((connect(connfd,(struct sockaddr*)&servaddr,sizeof(servaddr))) < 0){
-        my_err("connect",__LINE__);
+        perror("connect");
     }
     printf("与服务器链接成功！！！\n");
     client_menu();

@@ -1,0 +1,350 @@
+#include<stdio.h>
+#include<sys/types.h>
+#include<sys/socket.h>
+#include<unistd.h>
+#include<string.h>
+#include<netinet/in.h>
+#include<arpa/inet.h>
+#include<sys/epoll.h>
+#include<errno.h>
+#include<stdlib.h>
+#include<pthread.h>
+#include<signal.h>
+#include<mysql/mysql.h>
+#include"head.h"
+
+
+
+
+
+void my_err(const char *err_string, int line)
+{
+	fprintf(stderr, "line:%d ", line);
+	perror(err_string);
+	exit(1);
+}
+
+MYSQL init_mysql(void){
+    MYSQL  mysql;
+    if(NULL == mysql_init(&mysql)){
+        my_err("mysql_init",__LINE__);
+    }
+    if(mysql_library_init(0,NULL,NULL) != 0 ){
+        my_err("mysql_library_init",__LINE__);
+    }
+    if(!mysql_real_connect(&mysql,"127.0.0.1","root","123456","chat",0,NULL,0)){
+        my_err("mysql_real_connect",__LINE__);
+    }
+    if(mysql_set_character_set(&mysql, "utf8") < 0){
+		my_err("mysql_set_character_set", __LINE__);
+	}
+    printf("连接mysql数据库成功!\n");
+	return mysql;
+}
+
+int close_mysql(MYSQL mysql) {
+    mysql_close(&mysql);
+    mysql_library_end();
+    
+    return 0;
+}
+
+int user_find(recv_datas *mybag,MYSQL mysql){
+    MYSQL_RES *res = NULL;
+    MYSQL_ROW  row;
+    recv_datas *data = mybag;
+    char       sql[MYSQL_MAX];
+
+    pthread_mutex_lock(&mutex);
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from person where id = \'%d\';",data->send_id);
+    mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){
+    bzero(data->write_buff,sizeof(data->write_buff));
+    strcpy(data->write_buff,"your id is error");
+    pthread_mutex_unlock(&mutex);
+    return 0;
+    }else{
+    if(strcmp(data->send_name,row[1]) != 0){
+        bzero(data->write_buff,sizeof(data->write_buff));
+        strcpy(data->write_buff,"your nickname is error");
+        pthread_mutex_unlock(&mutex);
+        return 0;
+    }else{
+        bzero(data->write_buff,sizeof(data->write_buff));
+        sprintf(data->write_buff, "your passwd:%s", row[2]);
+        if(send(data->recvfd,data,sizeof(recv_datas),0) < 0){
+            my_err("send", __LINE__);
+        }
+        pthread_mutex_unlock(&mutex);
+        return 1;
+    }
+}
+
+}
+
+int user_login(recv_datas *mybag,MYSQL mysql){
+    int   ret;
+    int   i;
+    char  sql[MYSQL_MAX];
+    recv_datas  *data = mybag;
+    MYSQL_RES    *res  = NULL;
+    MYSQL_ROW     row;
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from person where id = \'%d\';",data->send_id);
+    pthread_mutex_lock(&mutex);
+    //mysql_query(&mysql,sql);
+    if((ret = mysql_query(&mysql,sql)) == 0){
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){
+        pthread_mutex_unlock(&mutex);
+        return -1;
+    }else if(strcmp(row[2],data->read_buff) == 0){//判断密码
+        strcpy(data->send_name,row[1]);
+        bzero(sql,sizeof( sql ));
+        data->recvfd = atoi(row[4]);//登录之后更新你的fd
+        sprintf(sql,"update person set state = \'1\' where id = \'%d\';",data->send_id);
+        mysql_query(&mysql,sql);
+        mysql_free_result(res);
+        pthread_mutex_unlock(&mutex);
+        return 1;
+    }else{
+        data->recvfd = atoi(row[4]);
+        pthread_mutex_unlock(&mutex);
+        return -1;
+    }
+    }else{
+        printf("failed to query\n");
+        pthread_mutex_unlock(&mutex);
+        return -1;
+    }
+}
+
+int user_sign(recv_datas *mybag,MYSQL mysql){
+    FILE           *fp;
+    recv_datas      *recv_data = mybag;
+    char            sql[MYSQL_MAX];
+    int             idnums;
+    pthread_mutex_lock(&mutex);
+    if((fp = fopen("idnums.txt","r")) == NULL){
+        printf("打开文件失败\n");
+        exit(1);
+    }
+    fread(&idnums,sizeof(int),1,fp);
+    sprintf(sql,"insert into person values(\'%d\',\'%s\',\'%s\',\'%d\',\'%d\');",idnums,recv_data->send_name,recv_data->read_buff,0,recv_data->recvfd);
+    
+    recv_data->send_id = idnums;
+    idnums -= 1 ;
+    mysql_query(&mysql,sql);
+    fclose(fp);
+    if((fp = fopen("idnums.txt", "w")) == NULL){
+        printf("打开文件失败\n");
+        exit(1);
+    }
+    fwrite(&idnums,sizeof(int),1,fp);
+    fclose(fp);
+    pthread_mutex_unlock(&mutex);
+}
+
+
+void *ser_deal(void *arg){
+    int i;
+    MYSQL mysql;
+    mysql = init_mysql();
+    recv_datas *recv_buf = (recv_datas*)arg;
+    int choice = recv_buf->type;
+    switch(choice){
+        case USER_LOGIN://登录后看消息盒子，包
+            if(!(user_login(recv_buf,mysql))){
+            recv_buf->type = ID_ERROR;
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"error");
+            if (send(recv_buf->recvfd, recv_buf, sizeof(recv_datas), 0) < 0) {
+                        my_err("send", __LINE__);
+            }
+            }else{
+                bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+                strcpy(recv_buf->write_buff,"sucess");
+                if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                    my_err("send",__LINE__);
+                }
+            }
+
+        break;
+        case USER_SIGN:
+            user_sign(recv_buf,mysql);
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"sign success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        break;
+
+        case USER_FIND:
+        if(!user_find(recv_buf,mysql)){
+        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        }
+        break;
+        case USER_CHANGE:
+        
+        break;
+    }
+close_mysql(mysql);
+}
+
+
+
+
+int main(){
+    MYSQL *myconn = NULL;
+    MYSQL_RES *res = NULL;
+    MYSQL_ROW  row;
+    int   connfd,sockfd;
+    int   optval;
+    int   flag_recv = 0;
+    int   names;
+    int   connects = 0;
+    char  sql[MYSQL_MAX];
+    char   ip[32];
+    pthread_t tid;
+    recv_datas recv_buf;
+    size_t ret;
+    socklen_t clen;
+    struct sockaddr_in cliaddr,servaddr;
+    
+    clen = sizeof(struct sockaddr_in);
+    myconn  = mysql_init(NULL);
+    if(!mysql_real_connect(myconn,"127.0.0.1","root","123456","chat",0,NULL,0)){
+       fprintf(stderr, "Failed to connect to database: Error: %s\n",
+        mysql_error(myconn));
+    }
+    if(mysql_set_character_set(myconn, "utf8") < 0){
+		my_err("mysql_set_character_set", __LINE__);
+	}
+    pthread_mutex_init(&mutex, NULL);
+    signal(SIGPIPE, SIG_IGN);
+
+    int epfd,npfd;
+    struct epoll_event ev;
+    struct epoll_event events[MAXEVENTS];
+
+    if((sockfd = socket(AF_INET,SOCK_STREAM,0))<0){
+        my_err("socket",__LINE__);
+    }
+    optval = 1;
+    if(setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(void*)&optval,sizeof(int)) < 0){
+        my_err("setsockopt",__LINE__);
+        exit(1);
+    }
+    setsockopt(sockfd,SOL_SOCKET,SO_KEEPALIVE,(void*)&optval,sizeof(int));
+    bzero(&servaddr,sizeof(struct sockaddr_in));
+
+    servaddr.sin_family=AF_INET;
+    servaddr.sin_port=htons(PORT);              //服务器端口
+    servaddr.sin_addr.s_addr=htonl(INADDR_ANY); //IP地址
+    if(bind(sockfd,(struct sockaddr*)&servaddr,sizeof(struct sockaddr_in)) < 0){
+        my_err("bind",__LINE__);
+        exit(1);
+    }
+    if(listen(sockfd,LINSTENNUM) < 0){
+        my_err("listen",__LINE__);
+        exit(1);
+    }
+
+    epfd = epoll_create(1);
+    ev.data.fd = sockfd;
+    ev.events = EPOLLIN | EPOLLET;
+
+    epoll_ctl(epfd,EPOLL_CTL_ADD,sockfd,&ev);
+    connects++;
+
+    while(1){
+
+        npfd = epoll_wait(epfd,events,MAXEVENTS,-1);
+        for(int i = 0;i < npfd;i++){
+            connects++;
+            if(events[i].data.fd == sockfd){
+                if(connects > MAXEVENTS){
+                    my_err("达到最大连接数...",__LINE__);
+                    continue;
+                }
+                connfd = accept(events[i].data.fd,(struct sockaddr*)&cliaddr,&clen);
+                 printf("客户端[IP：%s],[port: %d]已链接...\n",
+                inet_ntop(AF_INET,&cliaddr.sin_addr.s_addr,ip,sizeof(ip)),
+                ntohs(cliaddr.sin_port));
+
+                if(connfd <= 0){
+                    my_err("accpet",__LINE__);
+                    continue;
+                }
+                ev.data.fd = connfd;
+                ev.events = EPOLLIN  | EPOLLET;
+                epoll_ctl(epfd,EPOLL_CTL_ADD,connfd,&ev); //新增套接字
+            }
+            /* 用户正常发来消息请求 */
+            else if(events[i].events & EPOLLIN){
+                bzero(&recv_buf,sizeof(recv_datas));
+                if((ret = recv(events[i].data.fd,&recv_buf,sizeof(recv_datas),MSG_WAITALL)) < 0){
+                    my_err("recv",__LINE__);
+                    close(events[i].data.fd);
+                    continue;
+                }
+                if(recv_buf.type == USER_OUT){
+                    if(send(events[i].data.fd,&recv_buf,sizeof(recv_datas),0) < 0){
+                        my_err("send",__LINE__);
+                    }
+                printf("客户端ip[%d]已断开连接...\n",events[i].data.fd);
+                // bzero(sql,sizeof(sql));
+                // sprintf(sql,"select * from person where fd = \'%d\';",events[i].data.fd);
+                // mysql_query(&mysql,sql);
+                // res = mysql_store_result(&mysql);
+                // row = mysql_fetch_row(res);
+                bzero(sql,sizeof(sql));
+                sprintf(sql,"update person set state = \'0\' where state = \'1\' and fd = \'%d\';",events[i].data.fd);
+                mysql_query(myconn,sql);
+                mysql_free_result(res);
+                continue;
+                }
+                if(recv_buf.type == USER_LOGIN){
+                memset(sql,0,sizeof(sql));
+                sprintf(sql,"select * from person where id = \'%d\';",recv_buf.send_id);
+                pthread_mutex_lock(&mutex);
+                mysql_query(myconn,sql);
+                res = mysql_store_result(myconn);
+                if(mysql_fetch_row(res) == NULL){
+                    recv_buf.type = ID_ERROR;
+                    bzero(recv_buf.write_buff,sizeof(recv_buf.write_buff));
+                    printf("login failed...\n");
+                    strcpy(recv_buf.write_buff,"id error");
+                    if(send(events[i].data.fd,&recv_buf,sizeof(recv_datas),0)<0){
+                    my_err("send",__LINE__);
+                    }
+                    pthread_mutex_unlock(&mutex);
+                    continue;
+                    }
+                    bzero(sql,sizeof(sql));
+                    sprintf(sql,"update person set fd = \'%d\' where id = \'%d\';",events[i].data.fd,recv_buf.send_id);
+                    mysql_query(myconn,sql);
+                    pthread_mutex_unlock(&mutex);
+                    
+                 
+
+            }
+
+
+                    recv_buf.recvfd = events[i].data.fd;
+                    recv_datas *bf;
+                    bf = (recv_datas*)malloc(sizeof(recv_datas));
+                    memcpy(bf,&recv_buf,sizeof(recv_datas));
+                    pthread_create(&tid,NULL,(void*)ser_deal,(void*)bf);
+                    pthread_detach(tid);
+        }
+    }
+  }
+}
+
