@@ -17,6 +17,7 @@
 
 recv_datas  *send_data;
 recv_datas  *recv_data;
+BOX_MSG     *box;
 
 void my_err(const char *err_string, int line)
 {
@@ -72,13 +73,23 @@ void *read_mission(void*arg){
     send_data = (recv_datas*)malloc(sizeof(recv_datas));
 
     while(1){
-        /*  1，登录 2注册 3*/
-        first_menu();
+        printf("\t***************************************\n");
+        printf("\t************欢迎来到登录界面***********\n");
+        printf("\t***************************************\n");
+        printf("\t*****        1.登录               *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        2.注册               *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        3.找回密码           *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        4.退出               *****\n");
+        printf("\t***************************************\n");
+        printf("\t***************************************\n");
         printf("请选择: ");
         scanf("%d",&choice);
         getchar();
         switch(choice){
-            case 1:
+            case 1:        //登陆
             send_data->type = USER_LOGIN;
             printf("please input id: ");
             scanf("%d",&send_data->send_id);
@@ -108,7 +119,7 @@ void *read_mission(void*arg){
 
 
             case 2:
-                i = 0;
+                i = 0;            //注册
                 send_data->type = USER_SIGN;
                 printf("please input you name: ");
                 scanf("%s",send_data->send_name);
@@ -154,7 +165,7 @@ void *read_mission(void*arg){
                 }
         break;
 
-        case 3:
+        case 3:           //找回
         send_data->type = USER_FIND;
         printf("please input your id:");
         scanf("%d",&send_data->send_id);
@@ -174,7 +185,7 @@ void *read_mission(void*arg){
         break;
         
         case 4:
-        send_data->type = USER_OUT;
+        send_data->type = USER_OUT;   //登出
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
         }
@@ -210,7 +221,22 @@ void *read_mission(void*arg){
         }else if(choice == 3)   continue;
     }
     while(1){
-    second_menu();
+    printf("\t***************************************\n");
+    printf("\t********welcome to chatroom************\n");
+    printf("\t***************************************\n");
+    printf("\t*****        1.私聊               *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        2.加好友             *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        3.好友请求             *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        4.      *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        8.修改密码           *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        9.退出               *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t***************************************\n");
     printf("请选择: ");
     scanf("%d",&choice);
     getchar();
@@ -230,15 +256,13 @@ void *read_mission(void*arg){
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
         }
-
     }
-
     break;
 
-    case 2:
+    case 2:    //添加好友
     send_data->type = ADD_FRIEND;
     printf("请输入想加好友的id：");
-    scanf("%s",send_data->recv_id);
+    scanf("%d",&send_data->recv_id);
     getchar();
     if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
@@ -246,7 +270,7 @@ void *read_mission(void*arg){
     pthread_mutex_lock(&cl_mu);
     pthread_cond_wait(&cl_co,&cl_mu);
     pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"success") == 0){
+    if(strcmp(send_data->write_buff,"ok") == 0){
         printf("发送成功！等待对方确认...\n");
         printf("按任意键继续...");
         getchar();
@@ -259,6 +283,45 @@ void *read_mission(void*arg){
     break;
 
 
+    case 3:    //好友请求
+    pthread_mutex_lock(&cl_mu);
+    send_data->type = FRIEND_PLS;
+    if(!box->fri_pls_num){
+        printf("没有收到好友请求\n");
+        printf("按任意键继续...\n");
+        getchar();
+        pthread_mutex_unlock(&cl_mu);
+    }else{
+        for(int i = 0;i < box->fri_pls_num;i++){
+            printf("%s\n",box->send_pls[i]);
+            send_data->recv_id = box->fri_pls_id[i];
+            printf("[如何处理：1.接收 2.拒绝 3.忽略]\n选吧(选择除了-1-2-3-其他都作为-忽略-):");
+            scanf("%d",&choice);
+            getchar();
+            if(choice == 1){
+            strcpy(send_data->read_buff,"ok");
+            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+            }
+            }else if(choice == 2){
+            strcpy(send_data->read_buff,"no");
+            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+            }else{
+            continue;
+            }
+            }
+        }
+    }
+        box->fri_pls_num = 0;
+        printf("处理完成...\n");
+        printf("按任意键继续...");
+        pthread_mutex_unlock(&cl_mu);
+        bzero(send_data->write_buff,sizeof(send_data->write_buff));
+        bzero(send_data->read_buff,sizeof(send_data->read_buff));
+        getchar();
+    break;
+    
 
 
 
@@ -326,10 +389,21 @@ void *read_mission(void*arg){
     }
     }
 }
+
+
+
+
+
 void *write_mission(void*arg){
     int   connfd = *(int*)arg;
     int   ret;
+
     recv_data  = (recv_datas*)malloc(sizeof(recv_datas));
+    box = (BOX_MSG*)malloc(sizeof(BOX_MSG));
+
+
+
+
     while(1){
         bzero(recv_data,sizeof(recv_datas));
         if((ret = recv(connfd,recv_data,sizeof(recv_datas),0)) < 0){
@@ -394,8 +468,16 @@ void *write_mission(void*arg){
             pthread_mutex_unlock(&cl_mu);
             break;
 
-            case RECV_FMES:
+            case FRIEND_PLS:
+            pthread_mutex_lock(&cl_mu);
+            box->fri_pls_id[box->fri_pls_num]= recv_data->send_id;
+            strcpy(box->send_pls[box->fri_pls_num],recv_data->read_buff);
+            box->fri_pls_num += 1;
+            //printf("受到一条来自[帐号:%d][名称:%s]的好友请求...",recv_data->send_id,recv_data->send_name);
+            pthread_mutex_unlock(&cl_mu);
             break;
+
+            
         }
     }
 }

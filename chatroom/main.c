@@ -839,7 +839,6 @@ int add_fir(PACK *pack, MYSQL mysql1) {
                     my_err("send", __LINE__);
                 } 
                 pthread_mutex_unlock(&mutex);
-                
                 return 0;
             }
         }

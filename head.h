@@ -32,8 +32,8 @@
 #define ADD_FRIEND  6        // 加好友
 #define DEL_FRIEND  7        // 删好友
 #define LOOK_FRI_LS 8        // 查看好友状态
-
-
+#define FRIEND_PLS_ANS  40
+#define READ            41
 
 
 
@@ -59,7 +59,7 @@
 // 发送文件
 #define SEND_FILE 18
 // 好友请求
-#define FRIENDS_PLZ 19
+#define FRIEND_PLS 19
 // 黑名单
 #define BLACK_FRIEND 20
 // 取消黑名单
@@ -125,8 +125,8 @@ typedef struct box_message{
     int     fri_pls_id[512];
     int     recv_msgnum;
     int     fri_pls_num;
-    char    send_msg[MAX_MESSAGE];
-    char    send_pls[MAX_MESSAGE];
+    char    send_msg[512][MAX_MESSAGE];   //发送的消息
+    char    send_pls[512][MAX_MESSAGE];   //发送的请求
 }BOX_MSG;
 BOX_MSG *head;
 BOX_MSG *tail;
