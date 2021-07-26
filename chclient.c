@@ -228,13 +228,19 @@ void *read_mission(void*arg){
     printf("\t*****                             *****\n");
     printf("\t*****        2.加好友             *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        3.好友请求             *****\n");
+    printf("\t*****        3.好友请求           *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        4.      *****\n");
+    printf("\t*****        4.删除好友           *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        8.修改密码           *****\n");
+    printf("\t*****        5.查看好友列表       *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        9.退出               *****\n");
+    printf("\t*****        6.拉黑好友           *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        7.取消拉黑           *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        15.修改密码          *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        16.退出              *****\n");
     printf("\t*****                             *****\n");
     printf("\t***************************************\n");
     printf("请选择: ");
@@ -295,7 +301,7 @@ void *read_mission(void*arg){
         for(int i = 0;i < box->fri_pls_num;i++){
             printf("%s\n",box->send_pls[i]);
             send_data->recv_id = box->fri_pls_id[i];
-            printf("[如何处理：1.接收 2.拒绝 3.忽略]\n选吧(选择除了-1-2-3-其他都作为-忽略-):");
+            printf("[如何处理：1.同意 2.拒绝 3.忽略]\n选吧(选择除了-1-2-3-其他都作为-忽略-):");
             scanf("%d",&choice);
             getchar();
             if(choice == 1){
@@ -321,20 +327,91 @@ void *read_mission(void*arg){
         bzero(send_data->read_buff,sizeof(send_data->read_buff));
         getchar();
     break;
+
+    case 4:
+    send_data->type = DEL_FRIEND;
+    printf("请输入你想要删除的好友id: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co,&cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"delete success") == 0){
+        printf("delete success!\n");
+        printf("按任意键继续..");
+        getchar();
+    }else{
+        printf("您没有[id:%d]的好友!\n",send_data->recv_id);
+        printf("按任意键继续..");
+        getchar();
+    }
+    bzero(send_data->write_buff,sizeof(send_data->write_buff));
+    break;
+    
+    case 5:
+    send_data->type = LOOK_FRI_LS;
     
 
+    break;
+
+    case 6:
+    send_data->type = BLACK_LIST;
+    printf("选择要拉黑的好友id: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co,&cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"black success") == 0){
+    printf("拉黑[id:%d]好友成功\n",send_data->recv_id);
+    printf("按任意键继续...");
+    getchar();
+    }else{
+    printf("您没有该好友...\n");
+    printf("按任意键继续...");
+    getchar();
+    }
+    bzero(send_data->write_buff,sizeof(send_data->write_buff));
+    break;
+
+    case 7:
+    send_data->type = QUIT_BLACK;
+    printf("请输入要解黑的好友id: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co,&cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"quit ok") == 0){
+    printf("解黑[id:%d]好友成功\n",send_data->recv_id);
+    printf("按任意键继续...");
+    getchar();
+    }else{
+    printf("您没有该好友...\n");
+    printf("按任意键继续...");
+    getchar();
+    }
+    bzero(send_data->write_buff,sizeof(send_data->write_buff));
+    break;
+
+    case 8:
+    break;
 
 
 
 
 
 
-
-
-
-
-
-    case 8:         //修改密码
+    case 15:         //修改密码
     send_data->type = USER_CHANGE;
     printf("please input your original passwd: ");
     i = 0;
@@ -379,7 +456,7 @@ void *read_mission(void*arg){
     bzero(send_data->read_buff,sizeof(send_data->read_buff));
     break;
 
-    case 9:         //二级界面退出
+    case 16:         //二级界面退出
     send_data->type = USER_OUT;
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
@@ -420,7 +497,7 @@ void *write_mission(void*arg){
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             send_data->sendfd = recv_data->recvfd;
-
+            
 
             pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
@@ -477,7 +554,34 @@ void *write_mission(void*arg){
             pthread_mutex_unlock(&cl_mu);
             break;
 
+            case DEL_FRIEND:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case BLACK_LIST:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case QUIT_BLACK:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case SEND_INFO:
             
+
+            break;
         }
     }
 }

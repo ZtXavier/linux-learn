@@ -32,8 +32,9 @@
 #define ADD_FRIEND  6        // 加好友
 #define DEL_FRIEND  7        // 删好友
 #define LOOK_FRI_LS 8        // 查看好友状态
-#define FRIEND_PLS_ANS  40
-#define READ            41
+#define BLACK_LIST  9        //黑名单
+#define QUIT_BLACK  10       //取消黑名单
+
 
 
 
