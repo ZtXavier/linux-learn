@@ -257,7 +257,7 @@ int del_friend(recv_datas *mybag,MYSQL mysql){
     int ret = mysql_query(&mysql,sql);
     res = mysql_store_result(&mysql);
     row = mysql_fetch_row(res);
-    if(row == NULL){      
+    if(row == NULL){
     bzero(recv_data->write_buff,sizeof(recv_data->write_buff));       //查不到说明没有好友
     strcpy(recv_data->write_buff,"fail");
     pthread_mutex_unlock(&mutex);
@@ -395,10 +395,80 @@ int send_info(recv_datas *mybag,MYSQL mysql){
     
 }
 
+FRIENDS* look_list(recv_datas *mybag,MYSQL mysql){
+    MYSQL_RES    *res = NULL;
+    MYSQL_RES    *resl = NULL;
+    MYSQL_ROW     row;
+    MYSQL_ROW     rows;
+    recv_datas   *recv_data = mybag;
+    FRIENDS      *list;
+    char          sql[MYSQL_MAX];
+    pthread_mutex_lock(&mutex);
+    list = (FRIENDS*)malloc(sizeof(FRIENDS));
+    list->friend_num = 0;
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from friends where your_id = \'%d\';",recv_data->send_id);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    while(row = mysql_fetch_row(res)){
+    list->friend_id[list->friend_num] = atoi(row[1]);
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from person where id = \'%d\';",atoi(row[1]));
+    ret = mysql_query(&mysql,sql);
+    resl = mysql_store_result(&mysql);
+    rows = mysql_fetch_row(resl);
+    list->friend_state[list->friend_num] = atoi(rows[3]);
+    strcpy(list->friend_nickname[list->friend_num++],rows[1]);
+    }
+    if(list->friend_num == 0){
+    pthread_mutex_unlock(&mutex);
+    return list;
+    }else{
+    pthread_mutex_unlock(&mutex);
+    return list;
+    }
+}
+
+int look_history(recv_datas *mybag,MYSQL mysql){
+MYSQL_RES *res = NULL;
+MYSQL_ROW  row;
+recv_datas *recv_data = mybag;
+MSG        *his_msg;
+char        sql[MYSQL_MAX];
+his_msg = (MSG*)malloc(sizeof(MSG));
+his_msg->num = 0;
+bzero(sql,sizeof(sql));
+sprintf(sql,"select * from massage where your_id = \'%d\' and recv_id = \'%d\' union all select * from massage where your_id = \'%d\' and recv_id = \'%d\';",recv_data->send_id,recv_data->recv_id,recv_data->recv_id,recv_data->send_id);
+pthread_mutex_lock(&mutex);
+int ret = mysql_query(&mysql,sql);
+res = mysql_store_result(&mysql);
+while((row = mysql_fetch_row(res))){
+his_msg->send_id[his_msg->num] = atoi(row[0]);
+his_msg->recv_id[his_msg->num] = atoi(row[1]);
+strcpy(his_msg->message[his_msg->num++],row[2]);
+}
+if(send(recv_data->sendfd,recv_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+}
+if(send(recv_data->sendfd,his_msg,sizeof(MSG),0) < 0){
+    my_err("send",__LINE__);
+}
+pthread_mutex_unlock(&mutex);
+return 1;
+}
+
+int dele_history(recv_datas *mybag,MYSQL mysql){
+    
+}
+
+
+
 void *ser_deal(void *arg){
     int i;
     MYSQL mysql;
     mysql = init_mysql();
+    FRIENDS  *friend_list = NULL;
+    list_box  box = head;
     recv_datas *recv_buf = (recv_datas*)arg;
     int choice = recv_buf->type;
     switch(choice){
@@ -415,6 +485,35 @@ void *ser_deal(void *arg){
         strcpy(recv_buf->write_buff,"sucess");
         if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
+        }
+        while(box != NULL){
+            if(box->recv_id == recv_buf->send_id){
+                break;
+            }
+            box = box->next;
+        }
+        if(box == NULL){
+        box = (list_box)malloc(sizeof(BOX_MSG));
+        box->recv_id = recv_buf->send_id;
+        box->recv_msgnum = 0;
+        box->fri_pls_num = 0;         //记得初始化群信息
+        box->next = NULL;
+        if(head == NULL){
+        head = box;
+        tail = box;
+        }else{
+        tail->next = box;
+        tail= box;
+        }
+        if(send(recv_buf->recvfd,box,sizeof(BOX_MSG),0) < 0){
+        my_err("send",__LINE__);
+        }
+        }else{
+        if(send(recv_buf->recvfd,box,sizeof(BOX_MSG),0) < 0){
+        my_err("send",__LINE__);
+        }
+        box->recv_msgnum = 0;
+        box->fri_pls_num = 0;
         }
         }
         break;
@@ -491,7 +590,6 @@ void *ser_deal(void *arg){
         break;
 
         case SEND_INFO:
-
         if(send_info(recv_buf,mysql)){
         bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
         strcpy(recv_buf->write_buff,"send ok");
@@ -505,10 +603,38 @@ void *ser_deal(void *arg){
         my_err("send",__LINE__);
         }
         }
-
         break;
 
+        case LOOK_FRI_LS:
+        friend_list = look_list(recv_buf,mysql);
+        if(friend_list->friend_num){
+        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+        strcpy(recv_buf->write_buff,"nice");
+        if(send(recv_buf->sendfd,recv_buf,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        if(send(recv_buf->sendfd,friend_list,sizeof(FRIENDS),0) < 0){
+        my_err("send",__LINE__);
+        }
+        }else{
+        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+        strcpy(recv_buf->write_buff,"bad");
+        if(send(recv_buf->sendfd,recv_buf,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        if(send(recv_buf->sendfd,friend_list,sizeof(FRIENDS),0) < 0){
+        my_err("send",__LINE__);
+        }
+        }
+        break;
 
+        case LOOK_HISTORY:
+        look_history(recv_buf,mysql);
+        break;
+
+        case DELE_HISTORY:
+        dele_history(recv_buf,mysql);
+        break;
 
     }
 close_mysql(mysql);
@@ -517,7 +643,7 @@ close_mysql(mysql);
 
 
 
-int main(){
+int main(void){
     MYSQL *myconn = NULL;
     MYSQL_RES *res = NULL;
     MYSQL_ROW  row;

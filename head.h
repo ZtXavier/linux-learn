@@ -23,70 +23,77 @@
 #define   MAXEVENTS   1024   //最大事件数
 
 
-#define FRIENDS_MAXNUM  100
-#define USER_LOGIN  1        // 登录
-#define USER_SIGN   2        // 注册
-#define USER_FIND   3        // 找回密码
-#define USER_CHANGE 4        // 修改密码
-#define SEND_INFO   5        // 发消息
-#define ADD_FRIEND  6        // 加好友
-#define DEL_FRIEND  7        // 删好友
-#define LOOK_FRI_LS 8        // 查看好友状态
-#define BLACK_LIST  9        //黑名单
-#define QUIT_BLACK  10       //取消黑名单
-#define RECV_INFO   11       //收消息
+#define FRIENDS_MAXNUM  100      // 最大好友数量
+#define USER_LOGIN      1        // 登录
+#define USER_SIGN       2        // 注册
+#define USER_FIND       3        // 找回密码
+#define USER_CHANGE     4        // 修改密码
+#define SEND_INFO       5        // 发消息
+#define ADD_FRIEND      6        // 加好友
+#define DEL_FRIEND      7        // 删好友
+#define LOOK_FRI_LS     8        // 查看好友状态
+#define BLACK_LIST      9        //黑名单
+#define QUIT_BLACK     10        //取消黑名单
+#define RECV_INFO      11        //收消息
+#define LOOK_HISTORY   12        //查看消息记录
+#define DELE_HISTORY   13        //删除消息记录
+#define FRIEND_PLS     14        //好友申请
 
 
 
 
-// 创建群
-#define CREATE_GROUP 9
-// 加入群
-#define ADD_GROUP 10
-// 退出群
-#define EXIT_GROUP 11
-// 删除群成员
-#define DEL_MEMBER 12
-// 设置管理员
-#define SET_ADMIN 13
-// 删除管理员
-#define DEL_ADMIN 14
-// 发送群消息
-#define SEND_GMES 15
-// 查看加入的群
-#define LOOK_GROUP 16
-// 群主删除群
-#define DIS_GROUP 17
-// 发送文件
-#define SEND_FILE 18
-// 好友请求
-#define FRIEND_PLS 19
-// 黑名单
-#define BLACK_FRIEND 20
-// 取消黑名单
-#define WHITE_FRIEND 21
-// 特别关心
-#define CARE_FRIEND 22
-// 取消特关
-#define DISCARE_FRIEND 23
-#define MAXIN 1024
-#define USER_OUT -1
-#define ID_ERROR -2
 
-#define CARE 1
-#define OK 0
-#define RECV_FMES 24
-#define BLACK -1
-#define READ_MESSAGE 25
-#define READ_GMES 26
-#define RECV_GMES 27
-#define DEL_MESSAGE 28
-#define LOOK_MEMBER 29
-#define LOOK_GROUP_LIST 30
-#define RECV_FILE 31
-#define READ_FILE 32
-#define OK_FILE 33
-#define SEND_F 34
+
+#define ID_ERROR       -2        //帐号错误
+#define USER_OUT       -1        //用户登出
+// // 创建群
+// #define CREATE_GROUP 9
+// // 加入群
+// #define ADD_GROUP 10
+// // 退出群
+// #define EXIT_GROUP 11
+// // 删除群成员
+// #define DEL_MEMBER 12
+// // 设置管理员
+// #define SET_ADMIN 13
+// // 删除管理员
+// #define DEL_ADMIN 14
+// // 发送群消息
+// #define SEND_GMES 15
+// // 查看加入的群
+// #define LOOK_GROUP 16
+// // 群主删除群
+// #define DIS_GROUP 17
+// // 发送文件
+// #define SEND_FILE 18
+// // 好友请求
+// #define FRIEND_PLS 19
+// // 黑名单
+// #define BLACK_FRIEND 20
+// // 取消黑名单
+// #define WHITE_FRIEND 21
+// // 特别关心
+// #define CARE_FRIEND 22
+// // 取消特关
+// #define DISCARE_FRIEND 23
+// #define MAXIN 1024
+// #define USER_OUT -1
+// #define ID_ERROR -2
+
+// #define CARE 1
+// #define OK 0
+// #define RECV_FMES 24
+// #define BLACK -1
+// #define READ_MESSAGE 25
+// #define READ_GMES 26
+// #define RECV_GMES 27
+// #define DEL_MESSAGE 28
+// #define LOOK_MEMBER 29
+// #define LOOK_GROUP_LIST 30
+// #define RECV_FILE 31
+// #define READ_FILE 32
+// #define OK_FILE 33
+// #define SEND_F 34
 
 pthread_mutex_t mutex;
 pthread_mutex_t cl_mu;
@@ -128,9 +135,12 @@ typedef struct box_message{
     int     fri_pls_num;
     char    send_msg[512][MAX_MESSAGE];   //发送的消息
     char    send_pls[512][MAX_MESSAGE];   //发送的请求
-}BOX_MSG;
+}BOX_MSG,*list_box;
 BOX_MSG *head;
 BOX_MSG *tail;
+
+
+
 
 
 

@@ -19,6 +19,7 @@ recv_datas  *send_data;
 recv_datas  *recv_data;
 BOX_MSG     *box;
 MSG         *msg;
+FRIENDS     *flist;
 
 void my_err(const char *err_string, int line)
 {
@@ -290,9 +291,17 @@ void *read_mission(void*arg){
 
     case 2:    //添加好友
     send_data->type = ADD_FRIEND;
+    while(1){
     printf("请输入想加好友的id：");
     scanf("%d",&send_data->recv_id);
     getchar();
+    if(recv_data->send_id != recv_data->recv_id){
+        break;
+    }
+    printf("没朋友？太孤单寂寞了吧！！！");
+    printf("按任意键继续");
+    getchar();
+    }
     if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
     }
@@ -351,7 +360,7 @@ void *read_mission(void*arg){
         getchar();
     break;
 
-    case 4:
+    case 4:                //删除好友
     send_data->type = DEL_FRIEND;
     printf("请输入你想要删除的好友id: ");
     scanf("%d",&send_data->recv_id);
@@ -374,13 +383,34 @@ void *read_mission(void*arg){
     bzero(send_data->write_buff,sizeof(send_data->write_buff));
     break;
     
-    case 5:
+    case 5:                //查看好友列表
     send_data->type = LOOK_FRI_LS;
-    
-
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co,&cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"nice") == 0){
+    printf("friend list：\n");
+    for(i = 0;i < flist->friend_num;i++){
+    printf("-[id:%d]-[name:%s]-",flist->friend_id[i],flist->friend_nickname[i]);
+    if(flist->friend_state[i] == 1){
+    printf("online\n");
+    }else{
+    printf("outline\n");
+    }
+    }
+    printf("按任意键继续...\n");
+    getchar();
+    }else if(strcmp(send_data->write_buff,"bad") == 0){
+        printf("您还没有好友...\n");
+        printf("按任意键继续...");
+        getchar();
+    }
     break;
 
-    case 6:
+    case 6:              //拉黑好友
     send_data->type = BLACK_LIST;
     printf("选择要拉黑的好友id: ");
     scanf("%d",&send_data->recv_id);
@@ -403,7 +433,7 @@ void *read_mission(void*arg){
     bzero(send_data->write_buff,sizeof(send_data->write_buff));
     break;
 
-    case 7:
+    case 7:        //解除好友黑名单
     send_data->type = QUIT_BLACK;
     printf("请输入要解黑的好友id: ");
     scanf("%d",&send_data->recv_id);
@@ -439,6 +469,31 @@ void *read_mission(void*arg){
         printf("按任意键继续...");
         getchar();
     }
+    break;
+
+    case 9:    //查询历史记录
+    send_data->type = LOOK_HISTORY;
+    printf("请输入要查询历史记录的好友id: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co,&cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(msg->num == 0){
+        printf("没有聊天记录...\n");
+    }else{
+    for(i = 0;i< msg->num;i++){
+    printf("\t[%d 对 %d 说：%s]",msg->send_id[i],msg->recv_id[i],msg->message[i]);
+    }
+    }
+    printf("按任意键继续..");
+    getchar();
+    break;
+
+    case 10:
     break;
 
 
@@ -506,6 +561,15 @@ void *read_mission(void*arg){
 
 
 
+
+
+
+
+
+
+
+
+
 void *recv_info(void * arg){
     if(recv_data->send_id == send_data->recv_id){
     printf("[id:%d][昵称:%s]:%s\n",recv_data->send_id,recv_data->send_name,recv_data->read_buff);
@@ -517,13 +581,27 @@ void *recv_info(void * arg){
     pthread_exit(0);
 }
 
+void *look_list(void * connfd){
+    bzero(flist,sizeof(FRIENDS));
+    if(recv(*(int*)connfd,flist,sizeof(FRIENDS),MSG_WAITALL) < 0){
+    my_err("recv",__LINE__);
+    }
+    pthread_exit(0);
+}
 
+void *box_check(void * connfd){
+if(recv(*(int*)connfd,box,sizeof(BOX_MSG),MSG_WAITALL) < 0){
+my_err("recv",__LINE__);
+}
+pthread_exit(0);
+}
 
-
-
-
-
-
+void *look_msg(void * connfd){
+if(recv(*(int*)connfd,msg,sizeof(MSG), MSG_WAITALL) < 0){
+my_err("recv", __LINE__);
+}
+pthread_exit(0);
+}
 
 
 
@@ -546,7 +624,8 @@ void *write_mission(void*arg){
     pthread_t tid;
     recv_data  = (recv_datas*)malloc(sizeof(recv_datas));
     box = (BOX_MSG*)malloc(sizeof(BOX_MSG));
-
+    flist = (FRIENDS *)malloc(sizeof(FRIENDS));
+    msg = (MSG*)malloc(sizeof(MSG));
 
 
 
@@ -566,8 +645,9 @@ void *write_mission(void*arg){
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             send_data->sendfd = recv_data->recvfd;
-            
-
+            pthread_create(&tid,NULL,box_check,arg);
+            pthread_join(tid, NULL);
+            printf("\t--message:%d--fplease:%d--\n",box->recv_msgnum,box->fri_pls_num);
             pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
@@ -658,6 +738,27 @@ void *write_mission(void*arg){
             case RECV_INFO:
             pthread_create(&tid,NULL,recv_info,arg);
             pthread_join(tid, NULL);
+            break;
+
+            case LOOK_FRI_LS:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            bzero(flist,sizeof(FRIENDS));
+            pthread_create(&tid,NULL,look_list,arg);
+            pthread_join(tid, NULL);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case LOOK_HISTORY:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_create(&tid,NULL,look_msg,arg);
+            pthread_join(tid, NULL);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
             break;
         }
     }
