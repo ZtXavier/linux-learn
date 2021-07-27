@@ -18,6 +18,7 @@
 recv_datas  *send_data;
 recv_datas  *recv_data;
 BOX_MSG     *box;
+MSG         *msg;
 
 void my_err(const char *err_string, int line)
 {
@@ -238,6 +239,8 @@ void *read_mission(void*arg){
     printf("\t*****                             *****\n");
     printf("\t*****        7.取消拉黑           *****\n");
     printf("\t*****                             *****\n");
+    printf("\t*****        8.查看好友消息       *****\n");
+    printf("\t*****                             *****\n");
     printf("\t*****        15.修改密码          *****\n");
     printf("\t*****                             *****\n");
     printf("\t*****        16.退出              *****\n");
@@ -249,12 +252,22 @@ void *read_mission(void*arg){
     switch(choice){
     case 1:
     send_data->type = SEND_INFO;
+    // printf("please input your friend id: ");
+    while(1){
     printf("please input your friend id: ");
     scanf("%d",&send_data->recv_id);
     getchar();
+    if(send_data->recv_id != send_data->send_id){
+    break;
+    }
+    printf("正常点，不要自言自语!!!\n");
+    printf("按任意键继续");
+    getchar();
+    }
     printf("\t--可以与->%d<-好友聊天--\n",send_data->recv_id);
     while(1){
         scanf("%s",send_data->read_buff);
+        getchar();
         if(strcmp(send_data->read_buff,"#over#") == 0){
             printf("\t--与->%d<-好友聊天结束--\n",send_data->recv_id);
             break;
@@ -262,7 +275,17 @@ void *read_mission(void*arg){
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
         }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co,&cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"send fail") == 0){
+            printf("没有该[id:%d]的好友!!!\n",send_data->recv_id);
+            printf("按任意键继续...");
+            getchar();
+            break;
+        }
     }
+    send_data->recv_id = 0;
     break;
 
     case 2:    //添加好友
@@ -403,7 +426,19 @@ void *read_mission(void*arg){
     bzero(send_data->write_buff,sizeof(send_data->write_buff));
     break;
 
-    case 8:
+    case 8:   //查看好友消息
+    if(box->recv_msgnum == 0){
+        printf("没有好友消息...\n");
+        printf("按任意键继续...");
+        getchar();
+    }else{
+        for(i = 0;i < box->recv_msgnum;i++){
+            printf("[id:%d]说:%s\n",box->send_id[i],box->send_msg[i]);
+        }
+        box->recv_msgnum = 0;
+        printf("按任意键继续...");
+        getchar();
+    }
     break;
 
 
@@ -471,10 +506,44 @@ void *read_mission(void*arg){
 
 
 
+void *recv_info(void * arg){
+    if(recv_data->send_id == send_data->recv_id){
+    printf("[id:%d][昵称:%s]:%s\n",recv_data->send_id,recv_data->send_name,recv_data->read_buff);
+    }else{
+        box->send_id[box->recv_msgnum] = recv_data->send_id;
+        strcpy(box->send_msg[box->recv_msgnum++],recv_data->read_buff);
+        printf("您收到一条消息\n");
+    }
+    pthread_exit(0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void *write_mission(void*arg){
     int   connfd = *(int*)arg;
     int   ret;
-
+    pthread_t tid;
     recv_data  = (recv_datas*)malloc(sizeof(recv_datas));
     box = (BOX_MSG*)malloc(sizeof(BOX_MSG));
 
@@ -483,7 +552,7 @@ void *write_mission(void*arg){
 
     while(1){
         bzero(recv_data,sizeof(recv_datas));
-        if((ret = recv(connfd,recv_data,sizeof(recv_datas),0)) < 0){
+        if((ret = recv(connfd,recv_data,sizeof(recv_datas),MSG_WAITALL)) < 0){
             my_err("recv",__LINE__);
         }
         switch(recv_data->type){
@@ -579,8 +648,16 @@ void *write_mission(void*arg){
             break;
 
             case SEND_INFO:
-            
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
 
+            case RECV_INFO:
+            pthread_create(&tid,NULL,recv_info,arg);
+            pthread_join(tid, NULL);
             break;
         }
     }

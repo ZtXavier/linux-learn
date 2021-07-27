@@ -34,7 +34,7 @@
 #define LOOK_FRI_LS 8        // 查看好友状态
 #define BLACK_LIST  9        //黑名单
 #define QUIT_BLACK  10       //取消黑名单
-
+#define RECV_INFO   11       //收消息
 
 
 
@@ -120,10 +120,10 @@ typedef struct message{
 }MSG;
 
 typedef struct box_message{
-    struct BOX_MSG *next;
+    struct box_message *next;
     int     recv_id;
-    int     send_id[512];
-    int     fri_pls_id[512];
+    int     send_id[512];        //发消息的id
+    int     fri_pls_id[512];     //发请求消息的id
     int     recv_msgnum;
     int     fri_pls_num;
     char    send_msg[512][MAX_MESSAGE];   //发送的消息
