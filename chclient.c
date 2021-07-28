@@ -256,9 +256,20 @@ void *read_mission(void*arg){
     printf("\t*****                             *****\n");
     printf("\t*****        14.退群              *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        15.修改密码          *****\n");
+    printf("\t*****        15.设置管理员        *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        16.退出              *****\n");
+    printf("\t*****        16.取消管理员        *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        17.踢人              *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        19.修改密码          *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        20.退出              *****\n");
     printf("\t*****                             *****\n");
     printf("\t***************************************\n");
     printf("请选择: ");
@@ -614,6 +625,8 @@ void *read_mission(void*arg){
     printf("按任意键继续...\n");
     getchar();
     break;
+    
+
 
     case 14:
     send_data->type = EXIT_GROUP;
@@ -645,12 +658,119 @@ void *read_mission(void*arg){
     getchar();
     break;
 
+    case 15:            //设置管理员
+    send_data->type = SET_ADMIN;
+    bzero(buf, sizeof(buf));
+    printf("请输入群号: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    printf("请输入要设置管理员的成员id: ");
+    scanf("%s",buf);
+    getchar();
+    if(atoi(buf) == send_data->send_id){
+    printf("咋这么会玩呢,不可以...");
+    getchar();
+    break;
+    }
+    printf("是否保存? 1-yes 2-no\n");
+    scanf("%d",&sure);
+    getchar();
+    if(sure != 1){
+    break;
+    }
+    strcpy(send_data->read_buff,buf);
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co, &cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"success") == 0){
+    printf("[id:%d]已设置为[群:%d]的管理员!!\n",atoi(send_data->read_buff),send_data->recv_id);
+    }else if(strcmp(send_data->write_buff,"not host") == 0){
+    printf("您不是群主，没有该权限！！！\n");
+    }else if(strcmp(send_data->write_buff,"not mem") == 0){
+    printf("ta不是群成员\n");
+    }
+    printf("按任意键继续...\n");
+    getchar();
+    break;
+
+    case 16:
+    bzero(buf,sizeof(buf));
+    send_data->type = QUIT_ADMIN;
+    printf("请输入群id: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    printf("请输入你要取消管理员的id: ");
+    scanf("%s",buf);
+    getchar();
+    if(atoi(buf) == send_data->send_id){
+    printf("咋这么会玩呢,不可以...");
+    getchar();
+    break;
+    }
+    printf("是否保存? 1-yes 2-no\n");
+    scanf("%d",&sure);
+    getchar();
+    if(sure != 1){
+    break;
+    }
+    strcpy(send_data->read_buff,buf);
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co, &cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"success") == 0){
+    printf("成功取消[id:%d]在[群:%d]管理员身份!\n",atoi(send_data->read_buff),send_data->recv_id);
+    }else if(strcmp(send_data->write_buff,"not host") == 0){
+    printf("您不是群主，没有该权限(或者输入信息有误)！！！\n");
+    }else if(strcmp(send_data->write_buff,"not mem") == 0){
+    printf("ta不是群成员\n");
+    }
+    printf("按任意键继续...\n");
+    getchar();
+    break;
 
 
-
-
-
-
+    case 17:
+    send_data->type = KICK_MEM;
+    printf("请输入群id:");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    printf("请输入要踢出的群成员id: ");
+    scanf("%s",buf);
+    getchar();
+    if(atoi(buf) == send_data->send_id){
+    printf("你可以选择退群...");
+    getchar();
+    break;
+    }
+    printf("是否保存? 1-yes 2-no\n");
+    scanf("%d",&sure);
+    getchar();
+    if(sure != 1){
+    break;
+    }
+    strcpy(send_data->read_buff,buf);
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co, &cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"success") == 0){
+    printf("成功将[id:%d]踢出[群:%d]!\n",atoi(send_data->read_buff),send_data->recv_id);
+    }else if(strcmp(send_data->write_buff,"not") == 0){
+    printf("对方是管理员，您没有权限(对方不在群)！！！\n");
+    }else if(strcmp(send_data->write_buff,"not power") == 0){
+    printf("您没有权限(对方不在群)\n");
+    }
+    printf("按任意键继续...\n");
+    getchar();
+    break;
 
 
 
@@ -956,6 +1076,30 @@ void *write_mission(void*arg){
 
 
             case EXIT_GROUP:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case SET_ADMIN:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case QUIT_ADMIN:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case KICK_MEM:
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             pthread_mutex_lock(&cl_mu);
