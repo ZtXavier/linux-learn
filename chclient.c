@@ -252,6 +252,9 @@ void *read_mission(void*arg){
     printf("\t*****                             *****\n");
     printf("\t*****        12.解散群(只限群主)  *****\n");
     printf("\t*****                             *****\n");
+    printf("\t*****        13.加群              *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        14.退群              *****\n");
     printf("\t*****                             *****\n");
     printf("\t*****        15.修改密码          *****\n");
     printf("\t*****                             *****\n");
@@ -612,6 +615,35 @@ void *read_mission(void*arg){
     getchar();
     break;
 
+    case 14:
+    send_data->type = EXIT_GROUP;
+    printf("请输入你要退出的群id: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    printf("是否保存? 1-yes 2-no\n");
+    scanf("%d",&sure);
+    getchar();
+    if(sure != 1){
+    break;
+    }
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co, &cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"exit success") == 0){
+    printf("退群成功!!\n");
+    }else if(strcmp(send_data->write_buff,"no group") == 0){
+    printf("群不存在！！！\n");
+    }else if(strcmp(send_data->write_buff,"no add") == 0){
+    printf("您未在该群内\n");
+    }else if(strcmp(send_data->write_buff,"host exit") == 0){
+    printf("您为该群群主，您已经解散该群\n");
+    }
+    printf("按任意键继续...\n");
+    getchar();
+    break;
 
 
 
@@ -625,8 +657,7 @@ void *read_mission(void*arg){
 
 
 
-
-    case 15:         //修改密码
+    case 19:         //修改密码
     send_data->type = USER_CHANGE;
     printf("please input your original passwd: ");
     i = 0;
@@ -671,7 +702,7 @@ void *read_mission(void*arg){
     bzero(send_data->read_buff,sizeof(send_data->read_buff));
     break;
 
-    case 16:         //二级界面退出
+    case 20:         //二级界面退出
     send_data->type = USER_OUT;
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
@@ -918,6 +949,15 @@ void *write_mission(void*arg){
             strcpy(send_data->write_buff,recv_data->write_buff);
             bzero(send_data->recv_name,sizeof(send_data->recv_name));
             strcpy(send_data->recv_name,recv_data->recv_name);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+
+            case EXIT_GROUP:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
             pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
