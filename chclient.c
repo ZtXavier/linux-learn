@@ -72,6 +72,8 @@ void *read_mission(void*arg){
     int   ret;
     char  ch;
     char  password1[24],password2[24];
+    char buf[24];
+    int sure;
     send_data = (recv_datas*)malloc(sizeof(recv_datas));
 
     while(1){
@@ -248,6 +250,7 @@ void *read_mission(void*arg){
     printf("\t*****                             *****\n");
     printf("\t*****        11.创建群            *****\n");
     printf("\t*****                             *****\n");
+    printf("\t*****        12.解散群(只限群主)  *****\n");
     printf("\t*****                             *****\n");
     printf("\t*****                             *****\n");
     printf("\t*****        15.修改密码          *****\n");
@@ -522,8 +525,6 @@ void *read_mission(void*arg){
     break;
 
     case 11:  //创建群
-    char buf[24];
-    int sure;
     send_data->type = CREATE_GROUP;
     bzero(buf,sizeof(buf));
     printf("请输入你要创建的名称：");
@@ -555,8 +556,6 @@ void *read_mission(void*arg){
 
     case 12: //删除群
     send_data->type = DISSOLVE_GROUP;
-    char      buf[24];
-    int       sure;
     printf("请输入要解散的群id: ");
     scanf("%d",&send_data->recv_id);
     getchar();
@@ -572,7 +571,51 @@ void *read_mission(void*arg){
     pthread_mutex_lock(&cl_mu);
     pthread_cond_wait(&cl_co, &cl_mu);
     pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"dissolve success") == 0){
+    printf("群解散成功!!\n");
+    }else if(strcmp(send_data->write_buff,"no group") == 0){
+    printf("群不存在！！！\n");
+    }else if(strcmp(send_data->write_buff,"no num") == 0){
+    printf("我劝你善良!先加群吧>>\n");
+    }else{
+    printf("您不是群主，没有权限！！！\n");
+    }
+    printf("按任意键继续...\n");
+    getchar();
     break;
+
+    case 13:   //加群
+    send_data->type = ADD_GROUP;
+    printf("请输入你要加入的群id: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    printf("是否保存? 1-yes 2-no\n");
+    scanf("%d",&sure);
+    getchar();
+    if(sure != 1){
+    break;
+    }
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co, &cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    
+    break;
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     case 15:         //修改密码
@@ -847,6 +890,14 @@ void *write_mission(void*arg){
             bzero(send_data->recv_name,sizeof(send_data->recv_name));
             strcpy(send_data->recv_name,recv_data->recv_name);
             send_data->recv_id = recv_data->recv_id;
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case DISSOLVE_GROUP:
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             pthread_mutex_lock(&cl_mu);

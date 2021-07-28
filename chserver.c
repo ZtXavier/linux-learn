@@ -531,6 +531,46 @@ pthread_mutex_unlock(&mutex);
 return 1;
 }
 
+int dissolve_group(recv_datas *mybag,MYSQL mysql){
+MYSQL_RES  *res = NULL;
+MYSQL_RES  *resl = NULL;
+MYSQL_ROW   row,row_info;
+recv_datas *recv_data = mybag;
+char        sql[MYSQL_MAX];
+bzero(sql,sizeof(sql));
+sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
+pthread_mutex_lock(&mutex);
+int ret = mysql_query(&mysql,sql);
+res = mysql_store_result(&mysql);
+row = mysql_fetch_row(res);
+if(row == NULL){             //没有此群
+pthread_mutex_unlock(&mutex);
+return 0;
+}else{
+bzero(sql,sizeof(sql));
+sprintf(sql,"select * from groups where group_id  = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
+ret = mysql_query(&mysql,sql);
+resl = mysql_store_result(&mysql);
+row_info = mysql_fetch_row(resl);
+if(row_info == NULL){
+pthread_mutex_unlock(&mutex);
+return -2;
+}
+if(atoi(row_info[4]) == 2){
+bzero(sql,sizeof(sql));
+sprintf(sql,"delete from groups where group_id = \'%d\';",recv_data->recv_id);
+ret = mysql_query(&mysql,sql);
+bzero(sql,sizeof(sql));
+sprintf(sql,"delete from groups_info where group_id = \'%d\';",recv_data->recv_id);
+ret = mysql_query(&mysql,sql);
+pthread_mutex_unlock(&mutex);
+return 1;
+}else{
+pthread_mutex_unlock(&mutex);
+return -1;                       //不是群主没有权限    （群主：2,管理员：1，成员：0）
+}
+}
+}
 
 void *ser_deal(void *arg){
     int i;
@@ -717,7 +757,7 @@ void *ser_deal(void *arg){
         }
         break;
 
-        case CREATE_GROUP:
+        case CREATE_GROUP:  //建群
         if(create_group(recv_buf,mysql)){
             bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
             strcpy(recv_buf->write_buff,"create success");
@@ -731,6 +771,40 @@ void *ser_deal(void *arg){
             my_err("send",__LINE__);
             }
         }
+        break;
+
+
+        case DISSOLVE_GROUP: //解散群
+        if(dissolve_group(recv_buf,mysql) == 1){
+        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+        strcpy(recv_buf->write_buff,"dissolve success");
+        if(send(recv_buf->sendfd,recv_buf,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        }else if(dissolve_group(recv_buf,mysql) == 0){
+        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+        strcpy(recv_buf->write_buff,"no group");
+        if(send(recv_buf->sendfd,recv_buf,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        }else if(dissolve_group(recv_buf,mysql) == -2){
+        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+        strcpy(recv_buf->write_buff,"no num");
+        if(send(recv_buf->sendfd,recv_buf,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        }else{
+        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+        strcpy(recv_buf->write_buff,"no host");
+        if(send(recv_buf->sendfd,recv_buf,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        }
+        break;
+
+
+        case ADD_GROUP:
+
         break;
 
 
