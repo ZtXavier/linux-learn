@@ -38,6 +38,16 @@
 #define LOOK_HISTORY   12        //查看消息记录
 #define DELE_HISTORY   13        //删除消息记录
 #define FRIEND_PLS     14        //好友申请
+#define CREATE_GROUP   15        //创建群聊
+#define SET_ADMIN      16        //设置管理员
+#define KICK_MEM       17        //踢人
+#define ADD_GROUP      18        //加群
+#define EXIT_GROUP     19        //退群
+#define SEND_GROUP_MSG 20        //群聊
+#define QUIT_ADMIN     21        //取消群管理员
+#define LOOK_GROUP_LS  22        //查看加入的群
+#define LOOK_GROUP_MEM 23        //查看群成员
+#define DISSOLVE_GROUP 24        //解散群
 
 
 
@@ -128,18 +138,45 @@ typedef struct message{
 
 typedef struct box_message{
     struct box_message *next;
-    int     recv_id;
-    int     send_id[512];        //发消息的id
-    int     fri_pls_id[512];     //发请求消息的id
-    int     recv_msgnum;
+    int     recv_id;                       //收消息的id
+    int     send_id[512];                  //发消息的id
+    int     recv_msgnum;                   //收到的消息数量
+    char    send_msg[512][MAX_MESSAGE];    //发送的消息
+
+    int     fri_pls_id[512];               //发请求消息的id
     int     fri_pls_num;
-    char    send_msg[512][MAX_MESSAGE];   //发送的消息
-    char    send_pls[512][MAX_MESSAGE];   //发送的请求
+    char    send_pls[512][MAX_MESSAGE];    //发送的请求
+
+    int     group_send_id[512];            //发消息的人
+    int     group_msg_num;                 //发消息的数量
+    int     group_message[512][MAX_MESSAGE];            //群消息
+    int     group_id[512];                 //群号
+
 }BOX_MSG,*list_box;
 BOX_MSG *head;
 BOX_MSG *tail;
 
+typedef struct group_message{
+    int      group_send_id;              //发消息的id
+    int      group_msg_num;              //消息的数量
+    int      recv_id[512];               //收消息的id
+    char     message[512][MAX_MESSAGE];  //发送的消息
+}GRP_MSG;
 
+typedef struct group_info{
+    int       group_id[50];               //群号
+    int       number;                     //群数量
+    int       group_state[50];            //群状态
+    char      group_name[50][50];         //群名
+}GRP_INFO;
+
+typedef struct group_list{
+    int        group_id;                    //群id
+    int        group_mem_num;               //群成员数量
+    int        group_mem_id[512];           //群成员id
+    int        group_mem_state[512];        //群成员状态
+    char       group_mem_nickname[512][24]; //群成员昵称
+}GRP_LIST;
 
 
 

@@ -11,17 +11,19 @@ int    msglen;          //消息长度
 char   data[MSGSIZE];   //消息数据
 }msg;
 int main(void){
-    char ch;
-    char name[10];
-    int i = 0;
-    while(1){
-    scanf("%c",&ch);
-    printf("\b");
-    if(ch == '\n'){
-        printf("js");
-        break;
+    FILE *fp;
+    int num ;
+    if((fp = fopen("group.txt","r")) == NULL){
+        printf("Error opening");
     }
-    name[i++] = ch;
+    fread(&num,sizeof(int),1,fp);
+    fclose(fp);
+    printf("%d\n",num--);
+    if((fp = fopen("group.txt","w")) == NULL){
+        printf("Error opening");
     }
+    fwrite(&num, sizeof(int), 1, fp);
+    fclose(fp);
+    printf("%d\n",num);
     return 0;
 }

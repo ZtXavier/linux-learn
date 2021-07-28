@@ -242,6 +242,14 @@ void *read_mission(void*arg){
     printf("\t*****                             *****\n");
     printf("\t*****        8.查看好友消息       *****\n");
     printf("\t*****                             *****\n");
+    printf("\t*****        9.查看聊天记录       *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        10.删除聊天记录      *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        11.创建群            *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****                             *****\n");
     printf("\t*****        15.修改密码          *****\n");
     printf("\t*****                             *****\n");
     printf("\t*****        16.退出              *****\n");
@@ -295,7 +303,7 @@ void *read_mission(void*arg){
     printf("请输入想加好友的id：");
     scanf("%d",&send_data->recv_id);
     getchar();
-    if(recv_data->send_id != recv_data->recv_id){
+    if(send_data->send_id != send_data->recv_id){
         break;
     }
     printf("没朋友？太孤单寂寞了吧！！！");
@@ -471,9 +479,9 @@ void *read_mission(void*arg){
     }
     break;
 
-    case 9:    //查询历史记录
+    case 9:    //查询聊天记录
     send_data->type = LOOK_HISTORY;
-    printf("请输入要查询历史记录的好友id: ");
+    printf("请输入要查询与ta聊天记录的好友id: ");
     scanf("%d",&send_data->recv_id);
     getchar();
     if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
@@ -493,12 +501,78 @@ void *read_mission(void*arg){
     getchar();
     break;
 
-    case 10:
+    case 10: //删除聊天记录
+    send_data->type = DELE_HISTORY;
+    printf("请输入要删除与ta聊天记录的好友id: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co,&cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"delete success") == 0){
+    printf("已成功删除!\n");
+    }else{
+    printf("没有与他的聊天记录!\n");
+    }
+    printf("按任意键继续...");
+    getchar();
     break;
 
+    case 11:  //创建群
+    char buf[24];
+    int sure;
+    send_data->type = CREATE_GROUP;
+    bzero(buf,sizeof(buf));
+    printf("请输入你要创建的名称：");
+    scanf("%s",buf);
+    getchar();
+    printf("是否保存? 1-yes 2-no\n");
+    scanf("%d",&sure);
+    getchar();
+    if(sure == 1){
+    strcpy(send_data->recv_name,buf);
+    }else{
+    break;
+    }
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co,&cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"create success") == 0){
+    printf("创建成功!!\n");
+    printf("您的群信息为[id:%d][name:%s]\n",send_data->recv_id,send_data->recv_name);
+    }else{
+    printf("创建失败！！！\n");
+    }
+    printf("按任意键继续...\n");
+    getchar();
+    break;
 
-
-
+    case 12: //删除群
+    send_data->type = DISSOLVE_GROUP;
+    char      buf[24];
+    int       sure;
+    printf("请输入要解散的群id: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    printf("是否保存? 1-yes 2-no\n");
+    scanf("%d",&sure);
+    getchar();
+    if(sure != 1){
+    break;
+    }
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co, &cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    break;
 
 
     case 15:         //修改密码
@@ -756,6 +830,25 @@ void *write_mission(void*arg){
             strcpy(send_data->write_buff,recv_data->write_buff);
             pthread_create(&tid,NULL,look_msg,arg);
             pthread_join(tid, NULL);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case DELE_HISTORY:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case CREATE_GROUP:
+            bzero(send_data->recv_name,sizeof(send_data->recv_name));
+            strcpy(send_data->recv_name,recv_data->recv_name);
+            send_data->recv_id = recv_data->recv_id;
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
             pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
