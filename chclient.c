@@ -601,7 +601,15 @@ void *read_mission(void*arg){
     pthread_mutex_lock(&cl_mu);
     pthread_cond_wait(&cl_co, &cl_mu);
     pthread_mutex_unlock(&cl_mu);
-    
+    if(strcmp(send_data->write_buff,"add success") == 0){
+    printf("成功加入群[id:%d][群名:%s]!\n",send_data->recv_id,send_data->recv_name);
+    }else if(strcmp(send_data->write_buff,"have done") == 0){
+    printf("您已经加入该群！！！\n");
+    }else{
+    printf("该群不存在！！！\n");
+    }
+    printf("按任意键继续...\n");
+    getchar();
     break;
 
 
@@ -900,6 +908,16 @@ void *write_mission(void*arg){
             case DISSOLVE_GROUP:
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case ADD_GROUP:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            bzero(send_data->recv_name,sizeof(send_data->recv_name));
+            strcpy(send_data->recv_name,recv_data->recv_name);
             pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
