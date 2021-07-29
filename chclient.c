@@ -30,42 +30,6 @@ void my_err(const char *err_string, int line)
 	exit(1);
 }
 
-
-void first_menu(void){
-        printf("\t***************************************\n");
-        printf("\t************欢迎来到登录界面***********\n");
-        printf("\t***************************************\n");
-        printf("\t*****        1.登录               *****\n");
-        printf("\t*****                             *****\n");
-        printf("\t*****        2.注册               *****\n");
-        printf("\t*****                             *****\n");
-        printf("\t*****        3.找回密码           *****\n");
-        printf("\t*****                             *****\n");
-        printf("\t*****        4.退出               *****\n");
-        printf("\t***************************************\n");
-        printf("\t***************************************\n");
-}
-
-void second_menu(void){
-        printf("\t***************************************\n");
-        printf("\t********welcome to chatroom************\n");
-        printf("\t***************************************\n");
-        printf("\t*****        1.私聊               *****\n");
-        printf("\t*****                             *****\n");
-        printf("\t*****        2.加好友             *****\n");
-        printf("\t*****                             *****\n");
-        printf("\t*****        3.删好友             *****\n");
-        printf("\t*****                             *****\n");
-        printf("\t*****        3.查看好友列表       *****\n");
-        printf("\t*****                             *****\n");
-        printf("\t*****        8.修改密码           *****\n");
-        printf("\t*****                             *****\n");
-        printf("\t*****        9.退出               *****\n");
-        printf("\t*****                             *****\n");
-        printf("\t***************************************\n");
-
-}
-
 //来用写发数据
 void *read_mission(void*arg){
     int   connfd = *(int*)arg;
@@ -270,13 +234,17 @@ void *read_mission(void*arg){
     printf("\t*****                             *****\n");
     printf("\t*****        20.群聊              *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        21.发送文件          *****\n");
+    printf("\t*****        21.查看群消息        *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        22.接收文件          *****\n");
+    printf("\t*****        22.发送文件          *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        23.修改密码          *****\n");
+    printf("\t*****        23.接收文件          *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        24.退出              *****\n");
+    printf("\t*****        24.读取文件          *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        25.修改密码          *****\n");
+    printf("\t*****                             *****\n");
+    printf("\t*****        26.退出              *****\n");
     printf("\t*****                             *****\n");
     printf("\t***************************************\n");
     printf("请选择: ");
@@ -842,6 +810,59 @@ void *read_mission(void*arg){
     getchar();
     break;
 
+    case 20: //群聊
+    send_data->type = SEND_GROUP_MSG;
+    printf("请输入你要聊天的群id:");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    printf("是否保存? 1-yes 2-no\n");
+    scanf("%d",&sure);
+    getchar();
+    if(sure != 1){
+    break;
+    }
+    printf("\t--->群[id:%d]<---\n",send_data->recv_id);
+    while(1){
+    bzero(send_data->read_buff,sizeof(send_data->read_buff));
+    scanf("%s", send_data->read_buff);
+    getchar();
+    if(strcmp(send_data->read_buff,"#over#") == 0){
+        printf("您已退出群聊...\n");
+        break;
+    }
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co, &cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"no group") == 0){
+    printf("没有[id:%d]的群...\n",send_data->recv_id);
+    break;
+    }
+    }
+    send_data->recv_id = 0;
+    printf("按任意键继续...");
+    getchar();
+    break;
+
+    case 21:   //查群消息
+    if(box->group_msg_num == 0){
+        printf("没有群消息...\n");
+        printf("按任意键继续...");
+        getchar();
+    }else{
+        for(i = 0;i < box->group_msg_num;i++){
+            printf("[群id:%d][id:%d][name:%s]说:%s\n",box->group_id[i],box->group_send_id[i],box->group_mem_nikename[i],box->group_message[i]);
+        }
+        box->group_msg_num = 0;
+        printf("按任意键继续...");
+        getchar();
+    }
+    break;
+
+    case 22:
+    break;
 
 
 
@@ -860,12 +881,7 @@ void *read_mission(void*arg){
 
 
 
-
-
-
-
-
-    case 23:         //修改密码
+    case 25:         //修改密码
     send_data->type = USER_CHANGE;
     printf("please input your original passwd: ");
     i = 0;
@@ -910,7 +926,7 @@ void *read_mission(void*arg){
     bzero(send_data->read_buff,sizeof(send_data->read_buff));
     break;
 
-    case 24:         //二级界面退出
+    case 26:         //二级界面退出
     send_data->type = USER_OUT;
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
@@ -981,7 +997,18 @@ my_err("recv", __LINE__);
 pthread_exit(0);
 }
 
-
+void *recv_group_msg(void * connfd){
+    if(recv_data->recv_id == send_data->recv_id){
+    printf("[群id:%d][昵称:%s][id:%d][name:%s]:%s\n",recv_data->recv_id,recv_data->recv_name,recv_data->send_id,recv_data->send_name,recv_data->read_buff);
+    }else{
+    strcpy(box->group_message[box->group_msg_num],recv_data->read_buff); //发的消息
+                box->group_send_id[box->group_msg_num] = recv_data->send_id;         //发消息的id
+                strcpy(box->group_mem_nikename[box->group_msg_num],recv_data->send_name);
+                box->group_id[box->group_msg_num++] = recv_data->recv_id;
+    printf("您收到一条群消息\n");
+    }
+    pthread_exit(0);
+}
 
 
 
@@ -1021,7 +1048,7 @@ void *write_mission(void*arg){
             send_data->sendfd = recv_data->recvfd;
             pthread_create(&tid,NULL,box_check,arg);
             pthread_join(tid, NULL);
-            printf("\t--message:%d--fplease:%d--\n",box->recv_msgnum,box->fri_pls_num);
+            printf("\t离线收到的消息:--好友消息:%d条--好友邀请:%d条--群消息:%d条\n",box->recv_msgnum,box->fri_pls_num,box->group_msg_num);
             pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
@@ -1073,7 +1100,6 @@ void *write_mission(void*arg){
             box->fri_pls_id[box->fri_pls_num]= recv_data->send_id;
             strcpy(box->send_pls[box->fri_pls_num],recv_data->read_buff);
             box->fri_pls_num += 1;
-            //printf("受到一条来自[帐号:%d][名称:%s]的好友请求...",recv_data->send_id,recv_data->send_name);
             pthread_mutex_unlock(&cl_mu);
             break;
 
@@ -1225,6 +1251,19 @@ void *write_mission(void*arg){
             pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case SEND_GROUP_MSG:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case RECV_GROUP_MSG:
+            pthread_create(&tid,NULL,recv_group_msg,arg);
+            pthread_join(tid, NULL);
             break;
         }
     }

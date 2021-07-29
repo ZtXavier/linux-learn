@@ -48,8 +48,9 @@
 #define LOOK_GROUP_LS  22        //查看加入的群
 #define LOOK_GROUP_MEM 23        //查看群成员
 #define DISSOLVE_GROUP 24        //解散群
-
-
+#define RECV_GROUP_MSG 25        //收群消息
+#define SEND_FILE      26        //发文件
+#define RECV_FILE      27        //收文件
 
 
 
@@ -147,10 +148,11 @@ typedef struct box_message{
     int     fri_pls_num;
     char    send_pls[512][MAX_MESSAGE];    //发送的请求
 
-    int     group_send_id[512];            //发消息的人
-    int     group_msg_num;                 //发消息的数量
-    int     group_message[512][MAX_MESSAGE];            //群消息
-    int     group_id[512];                 //群号
+    int     group_send_id[512];              //发消息的人
+    int     group_msg_num;                   //发消息的数量
+    char    group_mem_nikename[512][50];     //发消息的人名
+    char    group_message[512][MAX_MESSAGE]; //群消息
+    int     group_id[512];                   //群号
 
 }BOX_MSG,*list_box;
 BOX_MSG *head;

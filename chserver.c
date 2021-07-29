@@ -875,6 +875,84 @@ int look_group_mem(recv_datas *mybag,MYSQL mysql){
     }
 }
 
+int send_group_msg(recv_datas *mybag,MYSQL mysql){
+MYSQL_RES   *res = NULL;
+MYSQL_RES   *result = NULL;
+MYSQL_ROW    row,rowl;
+recv_datas  *recv_data = mybag;
+BOX_MSG     *box = head;
+char         sql[MYSQL_MAX];
+
+pthread_mutex_lock(&mutex);
+recv_data->type = RECV_GROUP_MSG;
+bzero(sql,sizeof(sql));
+sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
+int ret = mysql_query(&mysql,sql);
+res = mysql_store_result(&mysql);
+row = mysql_fetch_row(res);
+if(row == NULL){
+recv_data->type = SEND_GROUP_MSG;
+pthread_mutex_unlock(&mutex);
+return -1;
+}else{
+bzero(sql,sizeof(sql));
+sprintf(sql,"select * from groups where group_id = \'%d\';",recv_data->recv_id);
+ret = mysql_query(&mysql,sql);
+res = mysql_store_result(&mysql);
+while((row = mysql_fetch_row(res)) != NULL){
+if(recv_data->send_id != atoi(row[2])){
+bzero(sql,sizeof(sql));
+sprintf(sql,"select * from person where id = \'%d\';",atoi(row[2]));
+ret = mysql_query(&mysql,sql);
+result = mysql_store_result(&mysql);
+rowl = mysql_fetch_row(result);
+if(atoi(rowl[3]) == 1){
+if(send(atoi(rowl[4]), recv_data, sizeof(recv_datas), 0) < 0){
+my_err("send",__LINE__);
+}
+}else{
+while(box != NULL){
+if(box->recv_id == atoi(rowl[0])){
+    break;
+}
+box = box->next;
+}
+if(box == NULL){
+box = (list_box)malloc(sizeof(BOX_MSG));
+box->group_msg_num = 0;
+box->recv_id = atoi(rowl[0]);    //存入收消息的id
+strcpy(box->group_message[box->group_msg_num],recv_data->read_buff); //发的消息
+box->group_send_id[box->group_msg_num] = recv_data->send_id;         //发消息的id
+strcpy(box->group_mem_nikename[box->group_msg_num],recv_data->send_name);
+box->group_id[box->group_msg_num++] = recv_data->recv_id;            //发消息的群id
+if(head == NULL){
+head = box;
+tail = box;
+tail->next = NULL;
+}else{
+tail->next = box;
+box ->next = NULL;
+tail = box;
+}
+}else{
+strcpy(box->group_message[box->group_msg_num],recv_data->read_buff); //发的消息
+box->group_send_id[box->group_msg_num] = recv_data->send_id;         //发消息的id
+strcpy(box->group_mem_nikename[box->group_msg_num],recv_data->send_name);
+box->group_id[box->group_msg_num++] = recv_data->recv_id;
+}
+}
+}
+}
+}
+recv_data->type = SEND_GROUP_MSG;
+pthread_mutex_unlock(&mutex);
+return 0;
+}
+
+
+
+
+
 
 void *ser_deal(void *arg){
     int i;
@@ -909,14 +987,17 @@ void *ser_deal(void *arg){
         box = (list_box)malloc(sizeof(BOX_MSG));
         box->recv_id = recv_buf->send_id;
         box->recv_msgnum = 0;
-        box->fri_pls_num = 0;         //记得初始化群信息
+        box->fri_pls_num = 0;
+        box->group_msg_num = 0;
         box->next = NULL;
         if(head == NULL){
         head = box;
         tail = box;
+        tail->next = NULL;
         }else{
         tail->next = box;
         tail= box;
+        tail->next = NULL;
         }
         if(send(recv_buf->recvfd,box,sizeof(BOX_MSG),0) < 0){
         my_err("send",__LINE__);
@@ -1231,6 +1312,22 @@ void *ser_deal(void *arg){
         look_group_mem(recv_buf,mysql);
         break;
 
+        case SEND_GROUP_MSG:
+        if(send_group_msg(recv_buf,mysql) == -1){
+        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+        strcpy(recv_buf->write_buff,"no group");
+        if(send(recv_buf->sendfd,recv_buf,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        }else{
+        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+        strcpy(recv_buf->write_buff,"success");
+        if(send(recv_buf->sendfd,recv_buf,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        }
+        break;
+
     }
 close_mysql(mysql);
 }
@@ -1294,7 +1391,7 @@ int main(void){
         exit(1);
     }
 
-    epfd = epoll_create(1);
+    epfd = epoll_create(MAXEVENTS);
     ev.data.fd = sockfd;
     ev.events = EPOLLIN | EPOLLET;
 
