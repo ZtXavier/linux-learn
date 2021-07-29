@@ -798,7 +798,82 @@ return 1;
 }
 }
 
+void look_group_ls(recv_datas *mybag,MYSQL mysql){
+MYSQL_RES   *res = NULL;
+MYSQL_ROW    row;
+recv_datas  *recv_data = mybag;
+char         sql[MYSQL_MAX];
+GRP_INFO     *group_list;
 
+bzero(sql,sizeof(sql));
+sprintf(sql,"select * from groups where group_mem_id = \'%d\'",recv_data->send_id);
+pthread_mutex_lock(&mutex);
+int ret = mysql_query(&mysql,sql);
+group_list = (GRP_INFO*)malloc(sizeof(GRP_INFO));
+group_list->number = 0;
+res = mysql_store_result(&mysql);
+while(row = mysql_fetch_row(res)){
+    group_list->group_id[group_list->number] = atoi(row[0]);
+    group_list->group_state[group_list->number] = atoi(row[4]);
+    strcpy(group_list->group_name[group_list->number++],row[1]);
+}
+if(send(recv_data->sendfd,recv_data,sizeof(recv_datas),0) < 0){
+my_err("send",__LINE__);
+}
+if(send(recv_data->sendfd,group_list,sizeof(GRP_INFO),0) < 0){
+my_err("send",__LINE__);
+}
+pthread_mutex_unlock(&mutex);
+}
+
+int look_group_mem(recv_datas *mybag,MYSQL mysql){
+    MYSQL_RES    *res = NULL;
+    MYSQL_ROW     row;
+    recv_datas   *recv_data = mybag;
+    GRP_MEM_LIST *group_mem = NULL;
+    char          sql[MYSQL_MAX];
+
+    group_mem = (GRP_MEM_LIST*)malloc(sizeof(GRP_MEM_LIST));
+    group_mem ->group_mem_num = 0;
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups where group_mem_id = \'%d\' and group_id = \'%d\';",recv_data->send_id,recv_data->recv_id);
+    pthread_mutex_lock(&mutex);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){
+    bzero(recv_data->write_buff,sizeof(recv_data->write_buff));
+    strcpy(recv_data->write_buff,"fail");
+    if(send(recv_data->sendfd,recv_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    if(send(recv_data->sendfd,group_mem,sizeof(GRP_MEM_LIST),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_unlock(&mutex);
+    return 0;
+    }else{
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups where group_id = \'%d\';",recv_data->recv_id);
+    ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    while(row = mysql_fetch_row(res)){
+        group_mem->group_mem_id[group_mem->group_mem_num] = atoi(row[2]);
+        group_mem->group_mem_state[group_mem->group_mem_num] = atoi(row[4]);
+        strcpy(group_mem->group_mem_nickname[group_mem->group_mem_num++],row[3]);
+    }
+    bzero(recv_data->write_buff,sizeof(recv_data->write_buff));
+    strcpy(recv_data->write_buff,"success");
+    if(send(recv_data->sendfd,recv_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    if(send(recv_data->sendfd,group_mem,sizeof(GRP_MEM_LIST),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_unlock(&mutex);
+    return 0;
+    }
+}
 
 
 void *ser_deal(void *arg){
@@ -1148,6 +1223,13 @@ void *ser_deal(void *arg){
         }
         break;
 
+        case LOOK_GROUP_LS:
+        look_group_ls(recv_buf,mysql);
+        break;
+
+        case LOOK_GROUP_MEM:
+        look_group_mem(recv_buf,mysql);
+        break;
 
     }
 close_mysql(mysql);
@@ -1219,81 +1301,80 @@ int main(void){
     epoll_ctl(epfd,EPOLL_CTL_ADD,sockfd,&ev);
     connects++;
 
-    while(1){
-
+while(1){
         npfd = epoll_wait(epfd,events,MAXEVENTS,-1);
         for(int i = 0;i < npfd;i++){
-            connects++;
-            if(events[i].data.fd == sockfd){
-                if(connects > MAXEVENTS){
-                    my_err("达到最大连接数...",__LINE__);
-                    continue;
-                }
-                connfd = accept(events[i].data.fd,(struct sockaddr*)&cliaddr,&clen);
-                 printf("客户端[IP：%s],[port: %d]已链接...\n",
-                inet_ntop(AF_INET,&cliaddr.sin_addr.s_addr,ip,sizeof(ip)),
-                ntohs(cliaddr.sin_port));
+        connects++;
+        if(events[i].data.fd == sockfd){
+        if(connects > MAXEVENTS){
+        my_err("达到最大连接数...",__LINE__);
+        continue;
+        }
+        connfd = accept(events[i].data.fd,(struct sockaddr*)&cliaddr,&clen);
+        printf("客户端[IP：%s],[port: %d]已链接...\n",
+        inet_ntop(AF_INET,&cliaddr.sin_addr.s_addr,ip,sizeof(ip)),
+        ntohs(cliaddr.sin_port));
 
-                if(connfd <= 0){
-                    my_err("accpet",__LINE__);
-                    continue;
-                }
-                ev.data.fd = connfd;
-                ev.events = EPOLLIN  | EPOLLET;
-                epoll_ctl(epfd,EPOLL_CTL_ADD,connfd,&ev); //新增套接字
-            }
-            /* 用户正常发来消息请求 */
-            else if(events[i].events & EPOLLIN){
-                bzero(&recv_buf,sizeof(recv_datas));
-                if((ret = recv(events[i].data.fd,&recv_buf,sizeof(recv_datas),MSG_WAITALL)) < 0){
-                    my_err("recv",__LINE__);
-                    close(events[i].data.fd);
-                    continue;
-                }
-                if(recv_buf.type == USER_OUT){
-                    if(send(events[i].data.fd,&recv_buf,sizeof(recv_datas),0) < 0){
-                        my_err("send",__LINE__);
-                    }
-                printf("客户端ip[%d]已断开连接...\n",events[i].data.fd);
-                // bzero(sql,sizeof(sql));
-                // sprintf(sql,"select * from person where fd = \'%d\';",events[i].data.fd);
-                // mysql_query(&mysql,sql);
-                // res = mysql_store_result(&mysql);
-                // row = mysql_fetch_row(res);
-                bzero(sql,sizeof(sql));
-                sprintf(sql,"update person set state = \'0\' where state = \'1\' and fd = \'%d\';",events[i].data.fd);
-                mysql_query(myconn,sql);
-                //mysql_free_result(res);
-                continue;
-                }
-                if(recv_buf.type == USER_LOGIN){
-                memset(sql,0,sizeof(sql));
-                sprintf(sql,"select * from person where id = \'%d\';",recv_buf.send_id);
-                pthread_mutex_lock(&mutex);
-                mysql_query(myconn,sql);
-                res = mysql_store_result(myconn);
-                if(mysql_fetch_row(res) == NULL){
-                    recv_buf.type = ID_ERROR;
-                    bzero(recv_buf.write_buff,sizeof(recv_buf.write_buff));
-                    printf("login failed...\n");
-                    strcpy(recv_buf.write_buff,"id error");
-                    if(send(events[i].data.fd,&recv_buf,sizeof(recv_datas),0)<0){
-                    my_err("send",__LINE__);
-                    }
-                    pthread_mutex_unlock(&mutex);
-                    continue;
-                    }
-                    bzero(sql,sizeof(sql));
-                    sprintf(sql,"update person set fd = \'%d\' where id = \'%d\';",events[i].data.fd,recv_buf.send_id);
-                    mysql_query(myconn,sql);
-                    pthread_mutex_unlock(&mutex);
-            }
-                    recv_buf.recvfd = events[i].data.fd;
-                    recv_datas *bf;
-                    bf = (recv_datas*)malloc(sizeof(recv_datas));
-                    memcpy(bf,&recv_buf,sizeof(recv_datas));
-                    pthread_create(&tid,NULL,(void*)ser_deal,(void*)bf);
-                    pthread_detach(tid);
+        if(connfd <= 0){
+        my_err("accpet",__LINE__);
+        continue;
+        }
+        ev.data.fd = connfd;
+        ev.events = EPOLLIN  | EPOLLET;
+        epoll_ctl(epfd,EPOLL_CTL_ADD,connfd,&ev); //新增套接字
+        }
+        /* 用户正常发来消息请求 */
+        else if(events[i].events & EPOLLIN){
+        bzero(&recv_buf,sizeof(recv_datas));
+        if((ret = recv(events[i].data.fd,&recv_buf,sizeof(recv_datas),MSG_WAITALL)) < 0){
+        my_err("recv",__LINE__);
+        close(events[i].data.fd);
+        continue;
+        }
+        if(recv_buf.type == USER_OUT){
+        if(send(events[i].data.fd,&recv_buf,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        printf("客户端ip[%d]已断开连接...\n",events[i].data.fd);
+        // bzero(sql,sizeof(sql));
+        // sprintf(sql,"select * from person where fd = \'%d\';",events[i].data.fd);
+        // mysql_query(&mysql,sql);
+        // res = mysql_store_result(&mysql);
+        // row = mysql_fetch_row(res);
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"update person set state = \'0\' where state = \'1\' and fd = \'%d\';",events[i].data.fd);
+        mysql_query(myconn,sql);
+        //mysql_free_result(res);
+        continue;
+        }
+        if(recv_buf.type == USER_LOGIN){
+        memset(sql,0,sizeof(sql));
+        sprintf(sql,"select * from person where id = \'%d\';",recv_buf.send_id);
+        pthread_mutex_lock(&mutex);
+        mysql_query(myconn,sql);
+        res = mysql_store_result(myconn);
+        if(mysql_fetch_row(res) == NULL){
+        recv_buf.type = ID_ERROR;
+        bzero(recv_buf.write_buff,sizeof(recv_buf.write_buff));
+        printf("login failed...\n");
+        strcpy(recv_buf.write_buff,"id error");
+        if(send(events[i].data.fd,&recv_buf,sizeof(recv_datas),0)<0){
+        my_err("send",__LINE__);
+        }
+        pthread_mutex_unlock(&mutex);
+        continue;
+        }
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"update person set fd = \'%d\' where id = \'%d\';",events[i].data.fd,recv_buf.send_id);
+        mysql_query(myconn,sql);
+        pthread_mutex_unlock(&mutex);
+        }
+        recv_buf.recvfd = events[i].data.fd;
+        recv_datas *bf;
+        bf = (recv_datas*)malloc(sizeof(recv_datas));
+        memcpy(bf,&recv_buf,sizeof(recv_datas));
+        pthread_create(&tid,NULL,(void*)ser_deal,(void*)bf);
+        pthread_detach(tid);
         }
     }
   }

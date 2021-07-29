@@ -15,11 +15,13 @@
 #include"mysql.h"
 
 
-recv_datas  *send_data;
-recv_datas  *recv_data;
-BOX_MSG     *box;
-MSG         *msg;
-FRIENDS     *flist;
+recv_datas   *send_data;
+recv_datas   *recv_data;
+BOX_MSG      *box;
+MSG          *msg;
+FRIENDS      *flist;
+GRP_INFO     *grp_info_list;
+GRP_MEM_LIST *group_mem;
 
 void my_err(const char *err_string, int line)
 {
@@ -262,14 +264,19 @@ void *read_mission(void*arg){
     printf("\t*****                             *****\n");
     printf("\t*****        17.踢人              *****\n");
     printf("\t*****                             *****\n");
+    printf("\t*****        18.查看加入的群      *****\n");
     printf("\t*****                             *****\n");
+    printf("\t*****        19.查看群成员        *****\n");
     printf("\t*****                             *****\n");
+    printf("\t*****        20.群聊              *****\n");
     printf("\t*****                             *****\n");
+    printf("\t*****        21.发送文件          *****\n");
     printf("\t*****                             *****\n");
+    printf("\t*****        22.接收文件          *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        19.修改密码          *****\n");
+    printf("\t*****        23.修改密码          *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        20.退出              *****\n");
+    printf("\t*****        24.退出              *****\n");
     printf("\t*****                             *****\n");
     printf("\t***************************************\n");
     printf("请选择: ");
@@ -772,12 +779,93 @@ void *read_mission(void*arg){
     getchar();
     break;
 
+    case 18:     //查看已加入的群
+    send_data->type = LOOK_GROUP_LS;
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co, &cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(grp_info_list->number == 0){
+        printf("您还没有加群哦!!!\n");
+    }else{
+        printf("\tgroup_list:\n");
+    for(i = 0;i < grp_info_list->number;i++){
+    printf("\t--[群id:%d][群名称:%s]--",grp_info_list->group_id[i],grp_info_list->group_name[i]);
+    if(grp_info_list->group_state[i] == 2){
+        printf("群主\n");
+    }else if(grp_info_list->group_state[i] == 1){
+        printf("管理员\n");
+    }else{
+        printf("普通成员\n");
+    }
+    }
+    }
+    printf("按任意键继续...\n");
+    getchar();
+    break;
+
+    case 19:            //查看群成员
+    send_data->type = LOOK_GROUP_MEM;
+    printf("请输入你要查看的群id: ");
+    scanf("%d",&send_data->recv_id);
+    getchar();
+    printf("是否保存? 1-yes 2-no\n");
+    scanf("%d",&sure);
+    getchar();
+    if(sure != 1){
+    break;
+    }
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }
+    pthread_mutex_lock(&cl_mu);
+    pthread_cond_wait(&cl_co, &cl_mu);
+    pthread_mutex_unlock(&cl_mu);
+    if(strcmp(send_data->write_buff,"fail") == 0){
+    printf("您没有进群,无法查看群内信息！");
+    }else if(strcmp(send_data->write_buff,"success") == 0){
+    printf("[群id:%d]:\n",send_data->recv_id);
+    for(i = 0;i < group_mem->group_mem_num;i++){
+    printf("\t--[id:%d][name:%s]--",group_mem->group_mem_id[i],group_mem->group_mem_nickname[i]);
+    if(group_mem->group_mem_state[i] == 2){
+    printf("群主\n");
+    }else if(group_mem->group_mem_state[i] == 1){
+    printf("管理员\n");
+    }else{
+    printf("普通成员\n");
+    }
+    }
+    }
+    printf("按任意键继续...\n");
+    getchar();
+    break;
 
 
 
 
 
-    case 19:         //修改密码
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    case 23:         //修改密码
     send_data->type = USER_CHANGE;
     printf("please input your original passwd: ");
     i = 0;
@@ -822,7 +910,7 @@ void *read_mission(void*arg){
     bzero(send_data->read_buff,sizeof(send_data->read_buff));
     break;
 
-    case 20:         //二级界面退出
+    case 24:         //二级界面退出
     send_data->type = USER_OUT;
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
@@ -879,9 +967,19 @@ my_err("recv", __LINE__);
 pthread_exit(0);
 }
 
+void *look_group_info(void *connfd){
+if(recv(*(int*)connfd,grp_info_list,sizeof(GRP_INFO), MSG_WAITALL) < 0){
+my_err("recv", __LINE__);
+}
+pthread_exit(0);
+}
 
-
-
+void *look_group_mem(void *connfd){
+if(recv(*(int*)connfd,group_mem,sizeof(GRP_MEM_LIST), MSG_WAITALL) < 0){
+my_err("recv", __LINE__);
+}
+pthread_exit(0);
+}
 
 
 
@@ -902,8 +1000,8 @@ void *write_mission(void*arg){
     box = (BOX_MSG*)malloc(sizeof(BOX_MSG));
     flist = (FRIENDS *)malloc(sizeof(FRIENDS));
     msg = (MSG*)malloc(sizeof(MSG));
-
-
+    grp_info_list = (GRP_INFO *)malloc(sizeof(GRP_INFO));
+    group_mem = (GRP_MEM_LIST *)malloc(sizeof(GRP_MEM_LIST));
 
     while(1){
         bzero(recv_data,sizeof(recv_datas));
@@ -1102,6 +1200,28 @@ void *write_mission(void*arg){
             case KICK_MEM:
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case LOOK_GROUP_LS:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            bzero(grp_info_list,sizeof(GRP_INFO));
+            pthread_create(&tid,NULL,look_group_info,arg);
+            pthread_join(tid, NULL);
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case LOOK_GROUP_MEM:
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            bzero(group_mem,sizeof(GRP_MEM_LIST));
+            pthread_create(&tid,NULL,look_group_mem,arg);
+            pthread_join(tid, NULL);
             pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);

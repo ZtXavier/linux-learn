@@ -171,12 +171,12 @@ typedef struct group_info{
 }GRP_INFO;
 
 typedef struct group_list{
-    int        group_id;                    //群id
+    // int        group_id;                    //群id
     int        group_mem_num;               //群成员数量
     int        group_mem_id[512];           //群成员id
     int        group_mem_state[512];        //群成员状态
     char       group_mem_nickname[512][24]; //群成员昵称
-}GRP_LIST;
+}GRP_MEM_LIST;
 
 
 
