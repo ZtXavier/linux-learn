@@ -33,6 +33,42 @@ void my_err(const char *err_string, int line)
 	exit(1);
 }
 
+char * my_passwd(char* passwd){
+    int k = 0;
+    system("stty -icanon");
+    system("stty -echo");
+    while(k < 24){
+        passwd[k] = getchar();
+        if(k == 0 && passwd[k] == BACKSPACE)
+		{
+			k=0;
+			passwd[k]='\0';
+			continue;
+		}
+		else if(passwd[k] == '\n')               //若按回车则直接跳出，输入结束
+		{
+			passwd[k]='\0';
+			break;
+		}
+		else if(passwd[k] == BACKSPACE)
+		{
+			printf("\b \b");                    //若删除，则光标前移，输空格覆盖，再光标前移
+			passwd[k]='\0';
+			k -= 1;                              //返回到前一个值继续输入
+			continue;                           //结束当前循环
+		}
+		else
+		{
+			printf("*");
+		}
+		k++;
+	}
+	system("stty echo");                      //开启回显
+	system("stty icanon");                   //关闭一次性读完操作，即getchar()必须回车也能获取字符
+	return passwd;
+}
+
+
 //来用写发数据
 void *read_mission(void*arg){
     int   connfd = *(int*)arg;
@@ -69,16 +105,17 @@ void *read_mission(void*arg){
             getchar();
             printf("please input password: ");
             i = 0;
-            while(1){
-            scanf("%c",&ch);
-            //printf("\b");
-            if(ch == '\n'){
-            send_data->read_buff[i] = '\0';
-            break;
-            }
-            //printf("*");
-            send_data->read_buff[i++] = ch;
-            }
+            // while(1){
+            // scanf("%c",&ch);
+            // //printf("\b");
+            // if(ch == '\n'){
+            // send_data->read_buff[i] = '\0';
+            // break;
+            // }
+            // //printf("*");
+            // send_data->read_buff[i++] = ch;
+            // }
+            my_passwd(send_data->read_buff);
             printf("\n");
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
@@ -98,27 +135,27 @@ void *read_mission(void*arg){
                 scanf("%s",send_data->send_name);
                 getchar();
                 printf("please input passwd: ");
-                while(1){
-                scanf("%c", &ch);
-                if(ch == '\n'){
-                password1[i] = '\0';
-                break;
-                }
-                password1[i++] = ch;
-                //printf("*");
-                }
+                // while(1){
+                // scanf("%c", &ch);
+                // if(ch == '\n'){
+                // password1[i] = '\0';
+                // break;
+                // }
+                // password1[i++] = ch;
+                // }
+                my_passwd(password1);
                 printf("\n");
                 printf("please input passwd again: ");
                 i = 0;
-                while(1){
-                scanf("%c", &ch);
-                if(ch == '\n'){
-                password2[i] = '\0';
-                break;
-                }
-                password2[i++] = ch;
-                    //printf("*");
-                }
+                // while(1){
+                // scanf("%c", &ch);
+                // if(ch == '\n'){
+                // password2[i] = '\0';
+                // break;
+                // }
+                // password2[i++] = ch;
+                // }
+                my_passwd(password2);
                 printf("\n");
                 if(strcmp(password1,password2) == 0){
                     printf("输入一致!\n");
@@ -896,7 +933,10 @@ void *read_mission(void*arg){
     }
     bzero(send_data->read_buff,sizeof(send_data->read_buff));
     printf("正在发送...");
-    while(read(fp,send_data->read_buff,sizeof(send_data->read_buff)-1)){
+    while(1){
+    if(read(fp,send_data->read_buff,sizeof(send_data->read_buff)-1) == 0){
+    break;
+    }
     if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
     my_err("send",__LINE__);
     }
@@ -1379,7 +1419,7 @@ void *write_mission(void*arg){
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             pthread_mutex_lock(&cl_mu);
-            if((fp = open("recv_file",O_WRONLY|O_CREAT|O_APPEND,S_IRUSR|S_IWUSR|S_IXUSR)) < 0){
+            if((fp = open("recv_file",O_WRONLY|O_CREAT|O_APPEND,0664)) < 0){
             my_err("open",__LINE__);
             }
             write(fp,recv_data->read_buff,(sizeof(recv_data->read_buff)-1));

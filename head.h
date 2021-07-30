@@ -22,7 +22,7 @@
 #define   MYSQL_MAX   1024   //数据库数组最大长度
 #define   MAX_MESSAGE 8192   //最大数
 #define   MAXEVENTS   1024   //最大事件数
-
+#define   BACKSPACE   127
 
 #define FRIENDS_MAXNUM  100      // 最大好友数量
 #define USER_LOGIN      1        // 登录
@@ -83,6 +83,13 @@ typedef struct friends{
     int    friend_num;
 }FRIENDS;
 
+typedef struct file{
+    char       filepath[50];
+    int        num;
+    int        send_id;
+    char       send_nickname[50];
+}FILE_INFO;
+
 typedef struct message{
     int     num;
     int     send_id[512];
@@ -118,13 +125,6 @@ typedef struct group_message{
     char     message[512][MAX_MESSAGE];  //发送的消息
 }GRP_MSG;
 
-typedef struct group_info{
-    int       group_id[50];               //群号
-    int       number;                     //群数量
-    int       group_state[50];            //群状态
-    char      group_name[50][50];         //群名
-}GRP_INFO;
-
 typedef struct group_list{
     // int        group_id;                    //群id
     int        group_mem_num;               //群成员数量
@@ -133,12 +133,10 @@ typedef struct group_list{
     char       group_mem_nickname[512][24]; //群成员昵称
 }GRP_MEM_LIST;
 
-typedef struct file{
-    char       filepath[50];
-    int        num;
-    int        send_id;
-    char       send_nickname[50];
-}FILE_INFO;
-
-
+typedef struct group_info{
+    int       group_id[50];               //群号
+    int       number;                     //群数量
+    int       group_state[50];            //群状态
+    char      group_name[50][50];         //群名
+}GRP_INFO;
 #endif /* BCCE2023_905A_4135_BD3E_F68333B9076F */

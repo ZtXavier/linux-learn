@@ -987,7 +987,7 @@ int finsh(recv_datas *mybag,MYSQL mysql){
 int send_file(recv_datas *mybag,MYSQL mysql){
 int fp;
 recv_datas *recv_data = mybag;
-if((fp = open("file",O_WRONLY|O_CREAT|O_APPEND,S_IRUSR|S_IWUSR|S_IXUSR)) < 0){
+if((fp = open("file",O_WRONLY|O_CREAT|O_APPEND,0664)) < 0){
 my_err("open",__LINE__);
 }
 write(fp,recv_data->read_buff,sizeof(recv_data->read_buff)-1);
@@ -1429,6 +1429,7 @@ close_mysql(mysql);
 
 
 
+
 int main(void){
     MYSQL *myconn = NULL;
     MYSQL_RES *res = NULL;
@@ -1445,7 +1446,6 @@ int main(void){
     size_t ret;
     socklen_t clen;
     struct sockaddr_in cliaddr,servaddr;
-    
     clen = sizeof(struct sockaddr_in);
     myconn  = mysql_init(NULL);
     if(!mysql_real_connect(myconn,"127.0.0.1","root","123456","chat",0,NULL,0)){
@@ -1487,7 +1487,7 @@ int main(void){
 
     epfd = epoll_create(MAXEVENTS);
     ev.data.fd = sockfd;
-    ev.events = EPOLLIN | EPOLLET;
+    ev.events = EPOLLIN  | EPOLLET | EPOLLRDHUP | EPOLLERR;
 
     epoll_ctl(epfd,EPOLL_CTL_ADD,sockfd,&ev);
     connects++;
@@ -1511,8 +1511,17 @@ while(1){
         continue;
         }
         ev.data.fd = connfd;
-        ev.events = EPOLLIN  | EPOLLET;
+        ev.events = EPOLLIN  | EPOLLET | EPOLLRDHUP | EPOLLERR;
         epoll_ctl(epfd,EPOLL_CTL_ADD,connfd,&ev); //新增套接字
+        }
+        /* 用户非正常挂断 */
+        else if((events[i].events & EPOLLIN) && (events[i].events & EPOLLRDHUP) || (events[i].events & EPOLLIN) && (events[i].events & EPOLLERR)){
+        printf("客户端ip[%d]非正常断开连接...\n",events[i].data.fd);
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"update person set state = \'0\' where state = \'1\' and fd = \'%d\';",events[i].data.fd);
+        mysql_query(myconn,sql);
+        epoll_ctl(epfd,EPOLL_CTL_DEL,connfd,&ev); //删去套接字
+        close(events[i].data.fd);
         }
         /* 用户正常发来消息请求 */
         else if(events[i].events & EPOLLIN){
@@ -1535,6 +1544,8 @@ while(1){
         bzero(sql,sizeof(sql));
         sprintf(sql,"update person set state = \'0\' where state = \'1\' and fd = \'%d\';",events[i].data.fd);
         mysql_query(myconn,sql);
+        epoll_ctl(epfd,EPOLL_CTL_DEL,connfd,&ev);
+        close(events[i].data.fd);
         //mysql_free_result(res);
         continue;
         }
