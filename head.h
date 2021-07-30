@@ -4,6 +4,7 @@
 #include<sys/types.h>
 #include<sys/socket.h>
 #include<unistd.h>
+#include<fcntl.h>
 #include<string.h>
 #include<netinet/in.h>
 #include<arpa/inet.h>
@@ -51,65 +52,16 @@
 #define RECV_GROUP_MSG 25        //收群消息
 #define SEND_FILE      26        //发文件
 #define RECV_FILE      27        //收文件
-
-
-
+#define FINSH          28        //服务器接收到全部文件的标志
+#define READ_FILE      29        //读客户端文件
+#define WRITE_FILE     30        //写到本地文件中
 
 #define ID_ERROR       -2        //帐号错误
 #define USER_OUT       -1        //用户登出
-// // 创建群
-// #define CREATE_GROUP 9
-// // 加入群
-// #define ADD_GROUP 10
-// // 退出群
-// #define EXIT_GROUP 11
-// // 删除群成员
-// #define DEL_MEMBER 12
-// // 设置管理员
-// #define SET_ADMIN 13
-// // 删除管理员
-// #define DEL_ADMIN 14
-// // 发送群消息
-// #define SEND_GMES 15
-// // 查看加入的群
-// #define LOOK_GROUP 16
-// // 群主删除群
-// #define DIS_GROUP 17
-// // 发送文件
-// #define SEND_FILE 18
-// // 好友请求
-// #define FRIEND_PLS 19
-// // 黑名单
-// #define BLACK_FRIEND 20
-// // 取消黑名单
-// #define WHITE_FRIEND 21
-// // 特别关心
-// #define CARE_FRIEND 22
-// // 取消特关
-// #define DISCARE_FRIEND 23
-// #define MAXIN 1024
-// #define USER_OUT -1
-// #define ID_ERROR -2
-
-// #define CARE 1
-// #define OK 0
-// #define RECV_FMES 24
-// #define BLACK -1
-// #define READ_MESSAGE 25
-// #define READ_GMES 26
-// #define RECV_GMES 27
-// #define DEL_MESSAGE 28
-// #define LOOK_MEMBER 29
-// #define LOOK_GROUP_LIST 30
-// #define RECV_FILE 31
-// #define READ_FILE 32
-// #define OK_FILE 33
-// #define SEND_F 34
 
 pthread_mutex_t mutex;
 pthread_mutex_t cl_mu;
 pthread_cond_t  cl_co;
-pthread_cond_t cond;
 
 typedef struct{
     int     type;
@@ -121,6 +73,7 @@ typedef struct{
     char    recv_name[24];
     char    read_buff[MAX_MESSAGE];
     char    write_buff[MAX_MESSAGE];
+    int     cont;
 }recv_datas;
 
 typedef struct friends{
@@ -180,7 +133,12 @@ typedef struct group_list{
     char       group_mem_nickname[512][24]; //群成员昵称
 }GRP_MEM_LIST;
 
-
+typedef struct file{
+    char       filepath[50];
+    int        num;
+    int        send_id;
+    char       send_nickname[50];
+}FILE_INFO;
 
 
 #endif /* BCCE2023_905A_4135_BD3E_F68333B9076F */

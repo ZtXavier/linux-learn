@@ -47,6 +47,8 @@ void my_err(const char *err_string, int line)
  *********************************************/
 void display_attribute(struct stat buf, char *name, int filecolor)
 {
+	char  buff_link[256];
+	char  colorname_link[NAME_MAX + 30];
 	char colorname[NAME_MAX + 30];
 	char buf_time[32];
 	struct passwd *psd;
@@ -127,6 +129,7 @@ void display_attribute(struct stat buf, char *name, int filecolor)
 		printf("-");
 	printf("\t");
 	//通过用户和组id得到用户的信息和其所在组的信息
+	readlink(name,buff_link,sizeof(buff_link));
 	psd = getpwuid(buf.st_uid);
 	grp = getgrgid(buf.st_gid);
 	printf("%2d ", buf.st_nlink);			//打印文件的硬链接数
@@ -136,15 +139,20 @@ void display_attribute(struct stat buf, char *name, int filecolor)
 	strcpy(buf_time, ctime(&buf.st_mtime)); //把时间转换成普通表示格式
 	buf_time[strlen(buf_time) - 1] = '\0';	//去掉换行符
 	printf("  %s", buf_time);				//输出时间
+	if (S_ISLNK(buf.st_mode))
+	{
+	sprintf(colorname, "\033[%dm%s\033[0m", filecolor, name);
+	printf(" %-s -> %s\n", colorname,buff_link);
+	}else{
 	sprintf(colorname, "\033[%dm%s\033[0m", filecolor, name);
 	printf(" %-s\n", colorname);
+	}
 }
 
-/*******************************
- 功能 ：输出文件名
- * *****************************/
+//输出文件名
 void display_single(char *name, int filecolor)
 {
+	char   buf[256];
 	char colorname[NAME_MAX + 30];
 	int i, len, j = 0;
 	len = strlen(name);
@@ -243,6 +251,7 @@ void display(int flag, char *pathname)
 	}
 	if (S_ISLNK(buf.st_mode))
 	{
+		filecolor = 35;
 	}
 	else if (S_ISREG(buf.st_mode))
 	{
@@ -749,6 +758,7 @@ void display_DIR(DIR *ret_opendir, int filecolor)
 		char *filename = ret_readdir->d_name;
 		if (filename[0] != '.')
 		{ //不输出当前目录，上一级目录与隐藏文件
+		
 			sprintf(colorname, "\033[%dm%s\033[0m", filecolor, filename);
 			printf("%-s\t", colorname); //打印文件名
 		}

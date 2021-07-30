@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include<sys/types.h>
+#include <sys/stat.h>
 #include<sys/socket.h>
 #include<unistd.h>
 #include<string.h>
@@ -949,8 +950,70 @@ pthread_mutex_unlock(&mutex);
 return 0;
 }
 
+int finsh(recv_datas *mybag,MYSQL mysql){
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW    row;
+    recv_datas  *recv_data = mybag;
+    char         sql[MYSQL_MAX];
+    
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from person where id = \'%d\';",recv_data->recv_id);
+    pthread_mutex_lock(&mutex);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){
+    pthread_mutex_unlock(&mutex);
+    return -1;
+    }else{
+    if(atoi(row[3]) == 0){
+    pthread_mutex_unlock(&mutex);
+    return 0;
+    }else{
+        recv_data->recvfd = atoi(row[4]);
+        recv_data->type = RECV_FILE;
+        if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        recv_data->type = FINSH;
+        if(send(recv_data->sendfd,recv_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+    }
+    }
+    pthread_mutex_unlock(&mutex);
+}
 
+int send_file(recv_datas *mybag,MYSQL mysql){
+int fp;
+recv_datas *recv_data = mybag;
+if((fp = open("file",O_WRONLY|O_CREAT|O_APPEND,S_IRUSR|S_IWUSR|S_IXUSR)) < 0){
+my_err("open",__LINE__);
+}
+write(fp,recv_data->read_buff,sizeof(recv_data->read_buff)-1);
+close(fp);
+if(send(recv_data->sendfd,recv_data,sizeof(recv_datas),0) < 0){
+my_err("send",__LINE__);
+}
+}
 
+int read_file(recv_datas *mybag,MYSQL mysql){
+int fp;
+recv_datas  *recv_data = mybag;
+if((fp = open("file",O_RDONLY)) < 0){
+my_err("open",__LINE__);
+}
+bzero(recv_data->read_buff,sizeof(recv_data->read_buff));
+lseek(fp,(sizeof(recv_data->read_buff)-1)*recv_data->cont,SEEK_SET);
+if(read(fp,recv_data->read_buff,(sizeof(recv_data->read_buff)-1)) == 0){
+strcpy(recv_data->write_buff,"finish");
+}
+close(fp);
+recv_data->type = READ_FILE;
+if(send(recv_data->sendfd,recv_data,sizeof(recv_datas),0) < 0){
+my_err("send",__LINE__);
+}
+}
 
 
 
@@ -960,6 +1023,7 @@ void *ser_deal(void *arg){
     mysql = init_mysql();
     FRIENDS  *friend_list = NULL;
     list_box  box = head;
+    int fp;
     recv_datas *recv_buf = (recv_datas*)arg;
     int choice = recv_buf->type;
     switch(choice){
@@ -1328,6 +1392,36 @@ void *ser_deal(void *arg){
         }
         break;
 
+        case SEND_FILE:
+        pthread_mutex_lock(&mutex);
+        send_file(recv_buf,mysql);
+        pthread_mutex_unlock(&mutex);
+        break;
+
+
+        case FINSH:
+        if(finsh(recv_buf,mysql) == -1){
+        recv_buf->type = SEND_FILE;
+        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+        strcpy(recv_buf->write_buff,"no people");
+        if(send(recv_buf->sendfd,recv_buf,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        }else if(finsh(recv_buf,mysql) == 0){
+        recv_buf->type = SEND_FILE;
+        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+        strcpy(recv_buf->write_buff,"outline");
+        if(send(recv_buf->sendfd,recv_buf,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        }
+        break;
+
+        case READ_FILE:
+        pthread_mutex_lock(&mutex);
+        read_file(recv_buf,mysql);
+        pthread_mutex_unlock(&mutex);
+        break;
     }
 close_mysql(mysql);
 }
