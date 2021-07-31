@@ -20,7 +20,8 @@
     "mychatroom.h": "c",
     "pack.h": "c",
     "ser_deal.h": "c",
-    "head.h": "c"
+    "head.h": "c",
+    "zlog.h": "c"
   }
 
 }

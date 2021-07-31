@@ -468,6 +468,7 @@ void *read_mission(void*arg){
     printf("按任意键继续...");
     getchar();
     }
+    send_data->recv_id = 0;
     bzero(send_data->write_buff,sizeof(send_data->write_buff));
     break;
 
@@ -491,6 +492,7 @@ void *read_mission(void*arg){
     printf("按任意键继续...");
     getchar();
     }
+    send_data->recv_id = 0;
     bzero(send_data->write_buff,sizeof(send_data->write_buff));
     break;
 
@@ -607,6 +609,7 @@ void *read_mission(void*arg){
     }else{
     printf("您不是群主，没有权限！！！\n");
     }
+    send_data->recv_id = 0;
     printf("按任意键继续...\n");
     getchar();
     break;
@@ -635,6 +638,7 @@ void *read_mission(void*arg){
     }else{
     printf("该群不存在！！！\n");
     }
+    send_data->recv_id = 0;
     printf("按任意键继续...\n");
     getchar();
     break;
@@ -667,6 +671,7 @@ void *read_mission(void*arg){
     }else if(strcmp(send_data->write_buff,"host exit") == 0){
     printf("您为该群群主，您已经解散该群\n");
     }
+    send_data->recv_id = 0;
     printf("按任意键继续...\n");
     getchar();
     break;
@@ -705,6 +710,7 @@ void *read_mission(void*arg){
     }else if(strcmp(send_data->write_buff,"not mem") == 0){
     printf("ta不是群成员\n");
     }
+    send_data->recv_id = 0;
     printf("按任意键继续...\n");
     getchar();
     break;
@@ -743,6 +749,7 @@ void *read_mission(void*arg){
     }else if(strcmp(send_data->write_buff,"not mem") == 0){
     printf("ta不是群成员\n");
     }
+    send_data->recv_id = 0;
     printf("按任意键继续...\n");
     getchar();
     break;
@@ -781,6 +788,7 @@ void *read_mission(void*arg){
     }else if(strcmp(send_data->write_buff,"not power") == 0){
     printf("您没有权限(对方不在群)\n");
     }
+    send_data->recv_id = 0;
     printf("按任意键继续...\n");
     getchar();
     break;
@@ -808,6 +816,7 @@ void *read_mission(void*arg){
     }
     }
     }
+    send_data->recv_id = 0;
     printf("按任意键继续...\n");
     getchar();
     break;
@@ -844,6 +853,7 @@ void *read_mission(void*arg){
     }
     }
     }
+    send_data->recv_id = 0;
     printf("按任意键继续...\n");
     getchar();
     break;

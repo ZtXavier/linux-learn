@@ -14,7 +14,7 @@
 #include<pthread.h>
 #include<signal.h>
 #include<mysql/mysql.h>
-
+#include"zlog.h"
 
 #define   PORT 9988          //端口号
 #define   LINSTENNUM  10      //最大监听数
