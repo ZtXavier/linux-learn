@@ -80,7 +80,6 @@ void *read_mission(void*arg){
     char buf[50];
     int sure;
     send_data = (recv_datas*)malloc(sizeof(recv_datas));
-
     while(1){
         printf("\t***************************************\n");
         printf("\t************欢迎来到登录界面***********\n");
@@ -194,7 +193,7 @@ void *read_mission(void*arg){
         getchar();
         break;
 
-        case 4:
+        case 0:
         send_data->type = USER_OUT;   //登出
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
@@ -208,26 +207,27 @@ void *read_mission(void*arg){
         getchar();
         break;
 
-        }if((choice > 4) || (choice < 1))    continue;
+        }
+        if((choice > 3) || (choice < 0))    continue;
         else if (choice == 1) {
-            if (strcmp(send_data->write_buff, "id error") == 0) {
-                printf("ID or PASSWD error!!!\n");
-                printf("按任意键继续.....\n");
-                getchar();
-                continue;
-            } else {
-                //printf("登陆成功!!\n");
-                printf("按下回车继续......\n");
-                getchar();
-                break;
-            }
+        if (strcmp(send_data->write_buff, "id error") == 0) {
+        printf("ID or PASSWD error!!!\n");
+        printf("按任意键继续.....\n");
+        getchar();
+        continue;
+        } else {
+        //printf("登陆成功!!\n");
+        printf("按下回车继续......\n");
+        getchar();
+        break;
+        }
         }
         else if (choice == 2){
-            printf("%s\n",send_data->write_buff);
-            printf("您的账号为:%d\n", send_data->send_id);
-            printf("按下回车继续.......");
-            getchar();
-            continue;
+        printf("%s\n",send_data->write_buff);
+        printf("您的账号为:%d\n", send_data->send_id);
+        printf("按下回车继续.......");
+        getchar();
+        continue;
         }else if(choice == 3)   continue;
     }
     while(1){
@@ -282,7 +282,7 @@ void *read_mission(void*arg){
     printf("\t*****                             *****\n");
     printf("\t*****        24.修改密码          *****\n");
     printf("\t*****                             *****\n");
-    printf("\t*****        25.退出              *****\n");
+    printf("\t*****        0.退出              *****\n");
     printf("\t*****                             *****\n");
     printf("\t***************************************\n");
     printf("请选择: ");
@@ -291,7 +291,6 @@ void *read_mission(void*arg){
     switch(choice){
     case 1:
     send_data->type = SEND_INFO;
-    // printf("please input your friend id: ");
     while(1){
     printf("please input your friend id: ");
     scanf("%d",&send_data->recv_id);
@@ -363,39 +362,39 @@ void *read_mission(void*arg){
     pthread_mutex_lock(&cl_mu);
     send_data->type = FRIEND_PLS;
     if(!box->fri_pls_num){
-        printf("没有收到好友请求\n");
-        printf("按任意键继续...\n");
-        getchar();
-        pthread_mutex_unlock(&cl_mu);
+    printf("没有收到好友请求\n");
+    printf("按任意键继续...\n");
+    getchar();
+    pthread_mutex_unlock(&cl_mu);
     }else{
-        for(int i = 0;i < box->fri_pls_num;i++){
-            printf("%s\n",box->send_pls[i]);
-            send_data->recv_id = box->fri_pls_id[i];
-            printf("如何处理[1.同意][2.拒绝]\n选吧(选择除了-1-2-其他都作为-拒绝-):");
-            scanf("%d",&choice);
-            getchar();
-            if(choice == 1){
-            strcpy(send_data->read_buff,"ok");
-            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-            my_err("send",__LINE__);
-            }
-            }else if(choice == 2){
-            strcpy(send_data->read_buff,"no");
-            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-            my_err("send",__LINE__);
-            }else{
-            continue;
-            }
-            }
-        }
+    for(int i = 0;i < box->fri_pls_num;i++){
+    printf("%s\n",box->send_pls[i]);
+    send_data->recv_id = box->fri_pls_id[i];
+    printf("如何处理[1.同意][2.拒绝]\n选吧(选择除了-1-2-其他都作为-拒绝-):");
+    scanf("%d",&choice);
+    getchar();
+    if(choice == 1){
+    strcpy(send_data->read_buff,"ok");
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
     }
-        box->fri_pls_num = 0;
-        printf("处理完成...\n");
-        printf("按任意键继续...");
-        pthread_mutex_unlock(&cl_mu);
-        bzero(send_data->write_buff,sizeof(send_data->write_buff));
-        bzero(send_data->read_buff,sizeof(send_data->read_buff));
-        getchar();
+    }else if(choice == 2){
+    strcpy(send_data->read_buff,"no");
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+    my_err("send",__LINE__);
+    }else{
+    continue;
+    }
+    }
+    }
+    }
+    box->fri_pls_num = 0;
+    printf("处理完成...\n");
+    printf("按任意键继续...");
+    pthread_mutex_unlock(&cl_mu);
+    bzero(send_data->write_buff,sizeof(send_data->write_buff));
+    bzero(send_data->read_buff,sizeof(send_data->read_buff));
+    getchar();
     break;
 
     case 4:                //删除好友
@@ -420,7 +419,8 @@ void *read_mission(void*arg){
     }
     bzero(send_data->write_buff,sizeof(send_data->write_buff));
     break;
-    
+
+
     case 5:                //查看好友列表
     send_data->type = LOOK_FRI_LS;
     if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
@@ -796,15 +796,15 @@ void *read_mission(void*arg){
     if(grp_info_list->number == 0){
         printf("您还没有加群哦!!!\n");
     }else{
-        printf("\tgroup_list:\n");
+    printf("\tgroup_list:\n");
     for(i = 0;i < grp_info_list->number;i++){
     printf("\t--[群id:%d][群名称:%s]--",grp_info_list->group_id[i],grp_info_list->group_name[i]);
     if(grp_info_list->group_state[i] == 2){
-        printf("群主\n");
+    printf("群主\n");
     }else if(grp_info_list->group_state[i] == 1){
-        printf("管理员\n");
+    printf("管理员\n");
     }else{
-        printf("普通成员\n");
+    printf("普通成员\n");
     }
     }
     }
@@ -1064,7 +1064,7 @@ void *read_mission(void*arg){
     bzero(send_data->read_buff,sizeof(send_data->read_buff));
     break;
 
-    case 25:         //二级界面退出
+    case 0:         //二级界面退出
     send_data->type = USER_OUT;
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
@@ -1171,6 +1171,7 @@ void *write_mission(void*arg){
             break;
 
             case USER_LOGIN:
+            pthread_mutex_lock(&cl_mu);
             strcpy(send_data->send_name,recv_data->send_name);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
@@ -1178,48 +1179,47 @@ void *write_mission(void*arg){
             pthread_create(&tid,NULL,box_check,arg);
             pthread_join(tid, NULL);
             printf("\t离线收到的消息:--好友消息:%d条--好友邀请:%d条--群消息:%d条\n",box->recv_msgnum,box->fri_pls_num,box->group_msg_num);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case USER_SIGN:
+            pthread_mutex_lock(&cl_mu);
             send_data->send_id = recv_data->send_id;
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case USER_FIND:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case ID_ERROR:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case USER_CHANGE:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case ADD_FRIEND:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
@@ -1233,33 +1233,33 @@ void *write_mission(void*arg){
             break;
 
             case DEL_FRIEND:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case BLACK_LIST:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case QUIT_BLACK:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case SEND_INFO:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
@@ -1270,122 +1270,122 @@ void *write_mission(void*arg){
             break;
 
             case LOOK_FRI_LS:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             bzero(flist,sizeof(FRIENDS));
             pthread_create(&tid,NULL,look_list,arg);
             pthread_join(tid, NULL);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case LOOK_HISTORY:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             pthread_create(&tid,NULL,look_msg,arg);
             pthread_join(tid, NULL);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case DELE_HISTORY:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case CREATE_GROUP:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->recv_name,sizeof(send_data->recv_name));
             strcpy(send_data->recv_name,recv_data->recv_name);
             send_data->recv_id = recv_data->recv_id;
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case DISSOLVE_GROUP:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case ADD_GROUP:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             bzero(send_data->recv_name,sizeof(send_data->recv_name));
             strcpy(send_data->recv_name,recv_data->recv_name);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
 
             case EXIT_GROUP:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case SET_ADMIN:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case QUIT_ADMIN:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case KICK_MEM:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case LOOK_GROUP_LS:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             bzero(grp_info_list,sizeof(GRP_INFO));
             pthread_create(&tid,NULL,look_group_info,arg);
             pthread_join(tid, NULL);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case LOOK_GROUP_MEM:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             bzero(group_mem,sizeof(GRP_MEM_LIST));
             pthread_create(&tid,NULL,look_group_mem,arg);
             pthread_join(tid, NULL);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
 
             case SEND_GROUP_MSG:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
@@ -1396,9 +1396,9 @@ void *write_mission(void*arg){
             break;
 
             case SEND_FILE:
-            // bzero(send_data->write_buff,sizeof(send_data->write_buff));
-            // strcpy(send_data->write_buff,recv_data->write_buff);
             pthread_mutex_lock(&cl_mu);
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
@@ -1416,9 +1416,9 @@ void *write_mission(void*arg){
             break;
 
             case READ_FILE:
+            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            pthread_mutex_lock(&cl_mu);
             if((fp = open("recv_file",O_WRONLY|O_CREAT|O_APPEND,0664)) < 0){
             my_err("open",__LINE__);
             }
