@@ -97,81 +97,56 @@ void *read_mission(void*arg){
         scanf("%d",&choice);
         getchar();
         switch(choice){
-            case 1:        //登陆
-            send_data->type = USER_LOGIN;
-            printf("please input id: ");
-            scanf("%d",&send_data->send_id);
-            getchar();
-            printf("please input password: ");
-            i = 0;
-            // while(1){
-            // scanf("%c",&ch);
-            // //printf("\b");
-            // if(ch == '\n'){
-            // send_data->read_buff[i] = '\0';
-            // break;
-            // }
-            // //printf("*");
-            // send_data->read_buff[i++] = ch;
-            // }
-            my_passwd(send_data->read_buff);
-            printf("\n");
-            bzero(send_data->write_buff,sizeof(send_data->write_buff));
-            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+        case 1:        //登陆
+        send_data->type = USER_LOGIN;
+        printf("please input id: ");
+        scanf("%d",&send_data->send_id);
+        getchar();
+        printf("please input password: ");
+        bzero(send_data->read_buff,sizeof(send_data->read_buff));
+        i = 0;
+        my_passwd(send_data->read_buff);
+        printf("\n");
+        bzero(send_data->write_buff,sizeof(send_data->write_buff));
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co,&cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        printf("\t--%s--\n",send_data->write_buff);
+        break;
+
+
+        case 2:
+        i = 0;            //注册
+        send_data->type = USER_SIGN;
+        printf("please input you name: ");
+        scanf("%s",send_data->send_name);
+        getchar();
+        printf("please input passwd: ");
+        my_passwd(password1);
+        printf("\n");
+        printf("please input passwd again: ");
+        i = 0;
+        my_passwd(password2);
+        printf("\n");
+        if(strcmp(password1,password2) == 0){
+        printf("输入一致!\n");
+        bzero(send_data->read_buff,sizeof(send_data->read_buff));
+        strcpy(send_data->read_buff,password1);
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
             my_err("send",__LINE__);
-            }
-            pthread_mutex_lock(&cl_mu);
-            pthread_cond_wait(&cl_co,&cl_mu);
-            pthread_mutex_unlock(&cl_mu);
-            printf("\t--%s--\n",send_data->write_buff);
-            break;
-
-
-            case 2:
-                i = 0;            //注册
-                send_data->type = USER_SIGN;
-                printf("please input you name: ");
-                scanf("%s",send_data->send_name);
-                getchar();
-                printf("please input passwd: ");
-                // while(1){
-                // scanf("%c", &ch);
-                // if(ch == '\n'){
-                // password1[i] = '\0';
-                // break;
-                // }
-                // password1[i++] = ch;
-                // }
-                my_passwd(password1);
-                printf("\n");
-                printf("please input passwd again: ");
-                i = 0;
-                // while(1){
-                // scanf("%c", &ch);
-                // if(ch == '\n'){
-                // password2[i] = '\0';
-                // break;
-                // }
-                // password2[i++] = ch;
-                // }
-                my_passwd(password2);
-                printf("\n");
-                if(strcmp(password1,password2) == 0){
-                    printf("输入一致!\n");
-                    bzero(send_data->read_buff,sizeof(send_data->read_buff));
-                    strcpy(send_data->read_buff,password1);
-                    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-                        my_err("send",__LINE__);
-                    }
-                    pthread_mutex_lock(&cl_mu);
-                    pthread_cond_wait(&cl_co,&cl_mu);
-                    pthread_mutex_unlock(&cl_mu);
-                }else{
-                    printf("两次输入不一致\n");
-                    printf("按回车继续\n");
-                    choice = 10;
-                    getchar();
-                }
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co,&cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        }else{
+        printf("两次输入不一致\n");
+        printf("按回车继续\n");
+        choice = 10;
+        getchar();
+        }
         break;
 
         case 3:           //找回
@@ -215,7 +190,7 @@ void *read_mission(void*arg){
         printf("按任意键继续.....\n");
         getchar();
         continue;
-        } else {
+        }else if(strcmp(send_data->write_buff,"id success") == 0){
         //printf("登陆成功!!\n");
         printf("按下回车继续......\n");
         getchar();
@@ -1185,7 +1160,7 @@ void *write_mission(void*arg){
             strcpy(send_data->send_name,recv_data->send_name);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            send_data->sendfd = recv_data->recvfd;
+            //send_data->sendfd = recv_data->recvfd;
             pthread_create(&tid,NULL,box_check,arg);
             pthread_join(tid, NULL);
             printf("\t离线收到的消息:--好友消息:%d条--好友邀请:%d条--群消息:%d条\n",box->recv_msgnum,box->fri_pls_num,box->group_msg_num);
@@ -1211,9 +1186,9 @@ void *write_mission(void*arg){
             break;
 
             case ID_ERROR:
-            pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_mutex_lock(&cl_mu);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
@@ -1432,7 +1407,7 @@ void *write_mission(void*arg){
             if((fp = open("recv_file",O_WRONLY|O_CREAT|O_APPEND,0664)) < 0){
             my_err("open",__LINE__);
             }
-            write(fp,recv_data->read_buff,(sizeof(recv_data->read_buff)-1));
+            write(fp,recv_data->read_buff,strlen(recv_data->read_buff));
             close(fp);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);

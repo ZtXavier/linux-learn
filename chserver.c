@@ -88,37 +88,29 @@ int user_login(recv_datas *mybag,MYSQL mysql){
     int   ret;
     int   i;
     char  sql[MYSQL_MAX];
-    recv_datas  *data = mybag;
+    recv_datas  *recv_data = mybag;
     MYSQL_RES    *res  = NULL;
     MYSQL_ROW     row;
     bzero(sql,sizeof(sql));
-    sprintf(sql,"select * from person where id = \'%d\';",data->send_id);
+    sprintf(sql,"select * from person where id = \'%d\';",recv_data->send_id);
     pthread_mutex_lock(&mutex);
-    //mysql_query(&mysql,sql);
-    if((ret = mysql_query(&mysql,sql)) == 0){
+    ret = mysql_query(&mysql,sql);
     res = mysql_store_result(&mysql);
     row = mysql_fetch_row(res);
     if(row == NULL){
-        pthread_mutex_unlock(&mutex);
-        return -1;
-    }else if(strcmp(row[2],data->read_buff) == 0){          //判断密码
-        strcpy(data->send_name,row[1]);                     //将昵称写入缓冲区好友申请时发送给对方
+    pthread_mutex_unlock(&mutex);
+    return 0;
+    }
+    if(strcmp(row[2],recv_data->read_buff) == 0){          //判断密码
+        strcpy(recv_data->send_name,row[1]);                     //将昵称写入缓冲区好友申请时发送给对方
         bzero(sql,sizeof(sql));
-        data->recvfd = atoi(row[4]);
-        sprintf(sql,"update person set state = \'1\' where id = \'%d\';",data->send_id);
-        mysql_query(&mysql,sql);
-        mysql_free_result(res);
+        sprintf(sql,"update person set state = \'1\' where id = \'%d\';",recv_data->send_id);
+        ret = mysql_query(&mysql,sql);
         pthread_mutex_unlock(&mutex);
         return 1;
     }else{
-        data->recvfd = atoi(row[4]);
         pthread_mutex_unlock(&mutex);
-        return -1;
-    }
-    }else{
-        printf("failed to query\n");
-        pthread_mutex_unlock(&mutex);
-        return -1;
+        return 0;
     }
 }
 
@@ -156,14 +148,14 @@ int user_change(recv_datas *mybag,MYSQL mysql){
     bzero(sql,sizeof(sql));
     sprintf(sql,"select * from person where id = \'%d\';",recv_data->send_id);
     pthread_mutex_lock(&mutex);
-    mysql_query(&mysql,sql);
+    int ret = mysql_query(&mysql,sql);
     res = mysql_store_result(&mysql);
     if((row = mysql_fetch_row(res))){
-    if(strcmp(recv_data->read_buff,row[2]) == 0){
+    if(strcmp(row[2],recv_data->read_buff) == 0){
     //recv_data->recvfd = atoi(row[4]);
     bzero(sql,sizeof(sql));
     sprintf(sql,"update person set passwd = \'%s\' where id = \'%d\';",recv_data->write_buff,recv_data->send_id);
-    mysql_query(&mysql,sql);
+    ret = mysql_query(&mysql,sql);
     pthread_mutex_unlock(&mutex);
     return 1;
     }else{
@@ -174,8 +166,6 @@ int user_change(recv_datas *mybag,MYSQL mysql){
     pthread_mutex_unlock(&mutex);
     return 0;
     }
-
-
 }
 
 int add_friend(recv_datas *mybag,MYSQL mysql){
@@ -973,7 +963,7 @@ recv_datas *recv_data = mybag;
 if((fp = open("file",O_WRONLY|O_CREAT|O_APPEND,0664)) < 0){
 my_err("open",__LINE__);
 }
-write(fp,recv_data->read_buff,sizeof(recv_data->read_buff)-1);
+write(fp,recv_data->read_buff,strlen(recv_data->read_buff));
 close(fp);
 if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
 my_err("send",__LINE__);
@@ -1011,13 +1001,13 @@ void *ser_deal(void *arg){
         if(!(user_login(recv_buf,mysql))){
         recv_buf->type = ID_ERROR;
         bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"error");
-        if (send(recv_buf->recvfd, recv_buf, sizeof(recv_datas), 0) < 0) {
+        strcpy(recv_buf->write_buff,"id error");
+        if (send(recv_buf->recvfd,recv_buf,sizeof(recv_datas), 0) < 0) {
         my_err("send", __LINE__);
         }
         }else{
         bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"sucess");
+        strcpy(recv_buf->write_buff,"id success");
         if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
         }
