@@ -39,7 +39,6 @@ MYSQL init_mysql(void){
     if(mysql_set_character_set(&mysql, "utf8") < 0){
 		my_err("mysql_set_character_set", __LINE__);
 	}
-    printf("连接mysql数据库成功!\n");
 	return mysql;
 }
 
@@ -971,7 +970,7 @@ int send_file(recv_datas *mybag,MYSQL mysql){
     int fp;
     recv_datas *recv_data = mybag;
     if((fp = open("file",O_WRONLY|O_CREAT|O_APPEND,0664)) < 0){
-        my_err("open",__LINE__);
+        printf("%s\n",strerror(errno));
     }
     write(fp,recv_data->read_buff,strlen(recv_data->read_buff));
     close(fp);
@@ -984,7 +983,7 @@ int read_file(recv_datas *mybag,MYSQL mysql){
     int fp;
     recv_datas  *recv_data = mybag;
     if((fp = open("file",O_RDONLY)) < 0){
-        my_err("open",__LINE__);
+        printf("%s\n",strerror(errno));
     }
     bzero(recv_data->read_buff,sizeof(recv_data->read_buff));
     lseek(fp,(sizeof(recv_data->read_buff)-1)*recv_data->cont,SEEK_SET);
@@ -999,6 +998,7 @@ int read_file(recv_datas *mybag,MYSQL mysql){
 }
 
 void *ser_deal(void *arg){
+    printf("进入函数选择任务类型\n");
     int i;
     int fp;
     MYSQL mysql;

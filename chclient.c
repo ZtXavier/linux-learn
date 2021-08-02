@@ -913,7 +913,7 @@ void *send_mission(void*arg){
 
     case 22:
     int fp;
-    struct stat buff;
+    struct stat *buff;
     bzero(buf,sizeof(buf));
     send_data->type = SEND_FILE;
     send_data->cont = 0;
@@ -929,16 +929,16 @@ void *send_mission(void*arg){
     if(sure != 1){
     break;
     }
-        bzero(send_data->write_buff,sizeof(send_data->write_buff));
-    if(stat(buf,&buff) < 0){
-        my_err("stat",__LINE__);
+    bzero(send_data->write_buff,sizeof(send_data->write_buff));
+    if(stat(buf,buff) != 0){
+        printf("%s\n",strerror(errno));
         printf("按任意键返回...");
         getchar();
         break;
     }
         strcpy(send_data->write_buff,buf);
     if((fp = open(send_data->write_buff,O_RDONLY)) < 0){
-        my_err("open",__LINE__);
+        printf("%s\n",strerror(errno));
         printf("按任意键返回...");
         getchar();
         break;
