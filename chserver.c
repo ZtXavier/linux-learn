@@ -151,99 +151,98 @@ int user_change(recv_datas *mybag,MYSQL mysql){
     int ret = mysql_query(&mysql,sql);
     res = mysql_store_result(&mysql);
     if((row = mysql_fetch_row(res))){
-    if(strcmp(row[2],recv_data->read_buff) == 0){
-    //recv_data->recvfd = atoi(row[4]);
-    bzero(sql,sizeof(sql));
-    sprintf(sql,"update person set passwd = \'%s\' where id = \'%d\';",recv_data->write_buff,recv_data->send_id);
-    ret = mysql_query(&mysql,sql);
-    pthread_mutex_unlock(&mutex);
-    return 1;
+        if(strcmp(row[2],recv_data->read_buff) == 0){
+            //recv_data->recvfd = atoi(row[4]);
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"update person set passwd = \'%s\' where id = \'%d\';",recv_data->write_buff,recv_data->send_id);
+            ret = mysql_query(&mysql,sql);
+            pthread_mutex_unlock(&mutex);
+            return 1;
+        }else{
+            pthread_mutex_unlock(&mutex);
+            return 0;
+        }
     }else{
-    pthread_mutex_unlock(&mutex);
-    return 0;
-    }
-    }else{
-    pthread_mutex_unlock(&mutex);
-    return 0;
+        pthread_mutex_unlock(&mutex);
+        return 0;
     }
 }
 
 int add_friend(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES *res = NULL;
-MYSQL_ROW  row_find,row;
-recv_datas *recv_data = mybag;
-list_box    box = NULL;
-char        sql[MYSQL_MAX];
-char        buf[100];
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from person where id = \'%d\';",recv_data->recv_id);
-pthread_mutex_lock(&mutex);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row_find = mysql_fetch_row(res);
-if(row_find == NULL){          //若查不到说明无此人,若查到则拿到该人的所有信息
-pthread_mutex_unlock(&mutex);
-return 0;
-}else{
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from friends where your_id = \'%d\' and friend_id = \'%d\';",recv_data->send_id,recv_data->recv_id);
-ret = mysql_query(&mysql,sql);
-printf("%d",ret);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row != NULL){               //如果已经是好友则返回
-pthread_mutex_unlock(&mutex);
-return 0;
-}else{                        //在此处要考虑对方在线情况
-bzero(buf,sizeof(buf));
-sprintf(buf,"[帐号:%d][昵称:%s]该用户向您发来好友申请",recv_data->send_id,recv_data->send_name);
-if(atoi(row_find[3]) == 1){
-recv_data->type = FRIEND_PLS;
-strcpy(recv_data->read_buff,buf);
-recv_data->sendfd = atoi(row_find[4]);
-strcpy(recv_data->recv_name,row_find[1]);
-if(send(recv_data->sendfd,recv_data,sizeof(recv_datas),0) < 0){
-my_err("send",__LINE__);
-}
-pthread_mutex_unlock(&mutex);
-return 1;
-}else{   //存消息盒子
-box = head;
-while(box != NULL){
-if(box->recv_id == recv_data->recv_id){
-box->fri_pls_id[box->fri_pls_num] = recv_data->send_id;
-strcpy(box->send_pls[box->fri_pls_num++],buf);
-}
-box = box->next;
-}if(box == NULL){
-box = (list_box)malloc(sizeof(BOX_MSG));
-box->recv_id = recv_data->recv_id;
-box->recv_msgnum = 0;
-box->fri_pls_num = 0;
-box->fri_pls_id[box->fri_pls_num] = recv_data->send_id;
-strcpy(box->send_pls[box->fri_pls_num++],buf);
-if(head== NULL){
-head = tail = box;
-tail->next = NULL;
-}else{
-tail->next = box;
-tail = box;
-tail->next = NULL;
-}
-}
-return 1;
-}
-}
-}
-pthread_mutex_unlock(&mutex);
+    MYSQL_RES *res = NULL;
+    MYSQL_ROW  row_find,row;
+    recv_datas *recv_data = mybag;
+    list_box    box = NULL;
+    char        sql[MYSQL_MAX];
+    char        buf[100];
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from person where id = \'%d\';",recv_data->recv_id);
+    pthread_mutex_lock(&mutex);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row_find = mysql_fetch_row(res);
+    if(row_find == NULL){          //若查不到说明无此人,若查到则拿到该人的所有信息
+        pthread_mutex_unlock(&mutex);
+        return 0;
+    }else{
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from friends where your_id = \'%d\' and friend_id = \'%d\';",recv_data->send_id,recv_data->recv_id);
+        ret = mysql_query(&mysql,sql);
+        printf("%d",ret);
+        res = mysql_store_result(&mysql);
+        row = mysql_fetch_row(res);
+        if(row != NULL){               //如果已经是好友则返回
+            pthread_mutex_unlock(&mutex);
+            return 0;
+        }else{                        //在此处要考虑对方在线情况
+            bzero(buf,sizeof(buf));
+            sprintf(buf,"[帐号:%d][昵称:%s]该用户向您发来好友申请",recv_data->send_id,recv_data->send_name);
+            if(atoi(row_find[3]) == 1){
+                recv_data->type = FRIEND_PLS;
+                strcpy(recv_data->read_buff,buf);
+                recv_data->sendfd = atoi(row_find[4]);
+                strcpy(recv_data->recv_name,row_find[1]);
+                if(send(recv_data->sendfd,recv_data,sizeof(recv_datas),0) < 0){
+                    my_err("send",__LINE__);
+                }
+                pthread_mutex_unlock(&mutex);
+                return 1;
+            }else{   //存消息盒子
+                box = head;
+                while(box != NULL){
+                    if(box->recv_id == recv_data->recv_id){
+                        box->fri_pls_id[box->fri_pls_num] = recv_data->send_id;
+                        strcpy(box->send_pls[box->fri_pls_num++],buf);
+                    }
+                    box = box->next;
+                }if(box == NULL){
+                    box = (list_box)malloc(sizeof(BOX_MSG));
+                    box->recv_id = recv_data->recv_id;
+                    box->recv_msgnum = 0;
+                    box->fri_pls_num = 0;
+                    box->fri_pls_id[box->fri_pls_num] = recv_data->send_id;
+                    strcpy(box->send_pls[box->fri_pls_num++],buf);
+                    if(head== NULL){
+                        head = tail = box;
+                        tail->next = NULL;
+                    }else{
+                        tail->next = box;
+                        tail = box;
+                        tail->next = NULL;
+                    }
+                }
+                pthread_mutex_unlock(&mutex);
+                return 1;
+            }
+        }
+    }
 }
 
-int friend_pls(recv_datas *mybag,MYSQL mysql)
-{
-MYSQL_RES   *res = NULL;
-MYSQL_ROW   row;
-recv_datas  *recv_data = mybag;
-char         sql[MYSQL_MAX];
+int friend_pls(recv_datas *mybag,MYSQL mysql){
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW   row;
+    recv_datas  *recv_data = mybag;
+    char         sql[MYSQL_MAX];
     if(strcmp(recv_data->read_buff,"ok") == 0){
         sprintf(sql,"insert into friends values(\'%d\',\'%d\',0);",recv_data->send_id,recv_data->recv_id);
         mysql_query(&mysql,sql);
@@ -495,7 +494,7 @@ int          num;
 bzero(sql,sizeof(sql));
 if((fp = fopen("group.txt","r")) == NULL){
 printf("Error opening");
-return -1;
+return 0;
 }
 fread(&num, sizeof(int), 1, fp);
 fclose(fp);
@@ -508,7 +507,7 @@ recv_data->recv_id = num;
 num -= 1;
 if((fp = fopen("group.txt","w")) == NULL){
 printf("Error opening");
-return -1;
+return 0;
 }
 fwrite(&num, sizeof(int), 1, fp);
 fclose(fp);
@@ -784,29 +783,29 @@ return 1;
 }
 
 void look_group_ls(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES   *res = NULL;
-MYSQL_ROW    row;
-recv_datas  *recv_data = mybag;
-char         sql[MYSQL_MAX];
-GRP_INFO     *group_list;
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW    row;
+    recv_datas  *recv_data = mybag;
+    char         sql[MYSQL_MAX];
+    GRP_INFO     *group_list;
 
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups where group_mem_id = \'%d\'",recv_data->send_id);
-int ret = mysql_query(&mysql,sql);
-group_list = (GRP_INFO*)malloc(sizeof(GRP_INFO));
-group_list->number = 0;
-res = mysql_store_result(&mysql);
-while(row = mysql_fetch_row(res)){
-    group_list->group_id[group_list->number] = atoi(row[0]);
-    group_list->group_state[group_list->number] = atoi(row[4]);
-    strcpy(group_list->group_name[group_list->number++],row[1]);
-}
-if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
-my_err("send",__LINE__);
-}
-if(send(recv_data->recvfd,group_list,sizeof(GRP_INFO),0) < 0){
-my_err("send",__LINE__);
-}
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups where group_mem_id = \'%d\'",recv_data->send_id);
+    int ret = mysql_query(&mysql,sql);
+    group_list = (GRP_INFO*)malloc(sizeof(GRP_INFO));
+    group_list->number = 0;
+    res = mysql_store_result(&mysql);
+    while(row = mysql_fetch_row(res)){
+        group_list->group_id[group_list->number] = atoi(row[0]);
+        group_list->group_state[group_list->number] = atoi(row[4]);
+        strcpy(group_list->group_name[group_list->number++],row[1]);
+    }
+    if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+    }
+    if(send(recv_data->recvfd,group_list,sizeof(GRP_INFO),0) < 0){
+        my_err("send",__LINE__);
+    }
 }
 
 int look_group_mem(recv_datas *mybag,MYSQL mysql){
@@ -856,74 +855,84 @@ int look_group_mem(recv_datas *mybag,MYSQL mysql){
 }
 
 int send_group_msg(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES   *res = NULL;
-MYSQL_RES   *result = NULL;
-MYSQL_ROW    row,rowl;
-recv_datas  *recv_data = mybag;
-BOX_MSG     *box = head;
-char         sql[MYSQL_MAX];
+    MYSQL_RES   *res = NULL;
+    MYSQL_RES   *result = NULL;
+    MYSQL_ROW    row,rowl;
+    recv_datas  *recv_data = mybag;
+    BOX_MSG     *box = head;
+    char         sql[MYSQL_MAX];
 
-pthread_mutex_lock(&mutex);
-recv_data->type = RECV_GROUP_MSG;
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL){
-recv_data->type = SEND_GROUP_MSG;
-pthread_mutex_unlock(&mutex);
-return -1;
-}else{
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups where group_id = \'%d\';",recv_data->recv_id);
-ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-while((row = mysql_fetch_row(res)) != NULL){
-if(recv_data->send_id != atoi(row[2])){
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from person where id = \'%d\';",atoi(row[2]));
-ret = mysql_query(&mysql,sql);
-result = mysql_store_result(&mysql);
-rowl = mysql_fetch_row(result);
-if(atoi(rowl[3]) == 1){
-if(send(atoi(rowl[4]), recv_data, sizeof(recv_datas), 0) < 0){
-my_err("send",__LINE__);
-}
-}else{
-while(box != NULL){
-if(box->recv_id == atoi(rowl[0])){
-    break;
-}
-box = box->next;
-}
-if(box == NULL){
-box = (list_box)malloc(sizeof(BOX_MSG));
-box->group_msg_num = 0;
-box->recv_id = atoi(rowl[0]);    //存入收消息的id
-strcpy(box->group_message[box->group_msg_num],recv_data->read_buff); //发的消息
-box->group_send_id[box->group_msg_num] = recv_data->send_id;         //发消息的id
-strcpy(box->group_mem_nikename[box->group_msg_num],recv_data->send_name);
-box->group_id[box->group_msg_num++] = recv_data->recv_id;            //发消息的群id
-if(head == NULL){
-head = box;
-tail = box;
-tail->next = NULL;
-}else{
-tail->next = box;
-box ->next = NULL;
-tail = box;
-}
-}else{
-strcpy(box->group_message[box->group_msg_num],recv_data->read_buff); //发的消息
-box->group_send_id[box->group_msg_num] = recv_data->send_id;         //发消息的id
-strcpy(box->group_mem_nikename[box->group_msg_num],recv_data->send_name);
-box->group_id[box->group_msg_num++] = recv_data->recv_id;
-}
-}
-}
-}
-}
+    pthread_mutex_lock(&mutex);
+    recv_data->type = RECV_GROUP_MSG;
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){
+        recv_data->type = SEND_GROUP_MSG;
+        pthread_mutex_unlock(&mutex);
+        return -1;
+    }else{
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
+        ret = mysql_query(&mysql,sql);
+        res = mysql_store_result(&mysql);
+        row = mysql_fetch_row(res);
+        if(row == NULL){
+        recv_data->type = SEND_GROUP_MSG;
+        pthread_mutex_unlock(&mutex);
+        return -1;
+        }
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from groups where group_id = \'%d\';",recv_data->recv_id);
+        ret = mysql_query(&mysql,sql);
+        res = mysql_store_result(&mysql);
+        while((row = mysql_fetch_row(res)) != NULL){
+            if(recv_data->send_id != atoi(row[2])){
+                bzero(sql,sizeof(sql));
+                sprintf(sql,"select * from person where id = \'%d\';",atoi(row[2]));
+                ret = mysql_query(&mysql,sql);
+                result = mysql_store_result(&mysql);
+                rowl = mysql_fetch_row(result);
+                if(atoi(rowl[3]) == 1){
+                    if(send(atoi(rowl[4]), recv_data, sizeof(recv_datas), 0) < 0){
+                        my_err("send",__LINE__);
+                    }
+                }else{
+                    while(box != NULL){
+                        if(box->recv_id == atoi(rowl[0])){
+                            break;
+                        }
+                        box = box->next;
+                    }
+                    if(box == NULL){
+                        box = (list_box)malloc(sizeof(BOX_MSG));
+                        box->group_msg_num = 0;
+                        box->recv_id = atoi(rowl[0]);    //存入收消息的id
+                        strcpy(box->group_message[box->group_msg_num],recv_data->read_buff); //发的消息
+                        box->group_send_id[box->group_msg_num] = recv_data->send_id;         //发消息的id
+                        strcpy(box->group_mem_nikename[box->group_msg_num],recv_data->send_name);
+                        box->group_id[box->group_msg_num++] = recv_data->recv_id;            //发消息的群id
+                        if(head == NULL){
+                        head = box;
+                        tail = box;
+                        tail->next = NULL;
+                    }else{
+                        tail->next = box;
+                        box ->next = NULL;
+                        tail = box;
+                    }
+                    }else{
+                        strcpy(box->group_message[box->group_msg_num],recv_data->read_buff); //发的消息
+                        box->group_send_id[box->group_msg_num] = recv_data->send_id;         //发消息的id
+                        strcpy(box->group_mem_nikename[box->group_msg_num],recv_data->send_name);
+                        box->group_id[box->group_msg_num++] = recv_data->recv_id;
+                    }
+                }
+            }
+        }
+    }
 recv_data->type = SEND_GROUP_MSG;
 pthread_mutex_unlock(&mutex);
 return 0;
@@ -959,34 +968,34 @@ my_err("send",__LINE__);
 }
 
 int send_file(recv_datas *mybag,MYSQL mysql){
-int fp;
-recv_datas *recv_data = mybag;
-if((fp = open("file",O_WRONLY|O_CREAT|O_APPEND,0664)) < 0){
-my_err("open",__LINE__);
-}
-write(fp,recv_data->read_buff,strlen(recv_data->read_buff));
-close(fp);
-if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
-my_err("send",__LINE__);
-}
+    int fp;
+    recv_datas *recv_data = mybag;
+    if((fp = open("file",O_WRONLY|O_CREAT|O_APPEND,0664)) < 0){
+        my_err("open",__LINE__);
+    }
+    write(fp,recv_data->read_buff,strlen(recv_data->read_buff));
+    close(fp);
+    if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+    }
 }
 
 int read_file(recv_datas *mybag,MYSQL mysql){
-int fp;
-recv_datas  *recv_data = mybag;
-if((fp = open("file",O_RDONLY)) < 0){
-my_err("open",__LINE__);
-}
-bzero(recv_data->read_buff,sizeof(recv_data->read_buff));
-lseek(fp,(sizeof(recv_data->read_buff)-1)*recv_data->cont,SEEK_SET);
-if(read(fp,recv_data->read_buff,(sizeof(recv_data->read_buff)-1)) == 0){
-strcpy(recv_data->write_buff,"finish");
-}
-close(fp);
-recv_data->type = READ_FILE;
-if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
-my_err("send",__LINE__);
-}
+    int fp;
+    recv_datas  *recv_data = mybag;
+    if((fp = open("file",O_RDONLY)) < 0){
+        my_err("open",__LINE__);
+    }
+    bzero(recv_data->read_buff,sizeof(recv_data->read_buff));
+    lseek(fp,(sizeof(recv_data->read_buff)-1)*recv_data->cont,SEEK_SET);
+    if(read(fp,recv_data->read_buff,(sizeof(recv_data->read_buff)-1)) == 0){
+        strcpy(recv_data->write_buff,"finish");
+    }
+    close(fp);
+    recv_data->type = READ_FILE;
+    if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+    }
 }
 
 void *ser_deal(void *arg){
@@ -1000,67 +1009,67 @@ void *ser_deal(void *arg){
     switch(choice){
         case USER_LOGIN://登录后看消息盒子，包
         if(!(user_login(recv_buf,mysql))){
-        recv_buf->type = ID_ERROR;
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"id error");
-        if (send(recv_buf->recvfd,recv_buf,sizeof(recv_datas), 0) < 0) {
-        my_err("send", __LINE__);
-        }
+            recv_buf->type = ID_ERROR;
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"id error");
+            if (send(recv_buf->recvfd,recv_buf,sizeof(recv_datas), 0) < 0) {
+                my_err("send", __LINE__);
+            }
         }else{
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"id success");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        while(box != NULL){
-        if(box->recv_id == recv_buf->send_id){
-        break;
-        }
-        box = box->next;
-        }
-        if(box == NULL){
-        box = (list_box)malloc(sizeof(BOX_MSG));
-        box->recv_id = recv_buf->send_id;
-        box->recv_msgnum = 0;
-        box->fri_pls_num = 0;
-        box->group_msg_num = 0;
-        box->next = NULL;
-        if(head == NULL){
-        head = box;
-        tail = box;
-        tail->next = NULL;
-        }else{
-        tail->next = box;
-        tail= box;
-        tail->next = NULL;
-        }
-        if(send(recv_buf->recvfd,box,sizeof(BOX_MSG),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else{
-        if(send(recv_buf->recvfd,box,sizeof(BOX_MSG),0) < 0){
-        my_err("send",__LINE__);
-        }
-        box->recv_msgnum = 0;
-        box->fri_pls_num = 0;
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"id success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+            while(box != NULL){
+                if(box->recv_id == recv_buf->send_id){
+                    break;
+                }
+                box = box->next;
+            }
+            if(box == NULL){
+                box = (list_box)malloc(sizeof(BOX_MSG));
+                box->recv_id = recv_buf->send_id;
+                box->recv_msgnum = 0;
+                box->fri_pls_num = 0;
+                box->group_msg_num = 0;
+                box->next = NULL;
+            if(head == NULL){
+                head = box;
+                tail = box;
+                tail->next = NULL;
+            }else{
+                tail->next = box;
+                tail= box;
+                tail->next = NULL;
+            }
+            if(send(recv_buf->recvfd,box,sizeof(BOX_MSG),0) < 0){
+                my_err("send",__LINE__);
+            }
+            }else{
+                if(send(recv_buf->recvfd,box,sizeof(BOX_MSG),0) < 0){
+                    my_err("send",__LINE__);
+                }
+                box->recv_msgnum = 0;
+                box->fri_pls_num = 0;
+            }
         }
         break;
 
         case USER_SIGN:
-        user_sign(recv_buf,mysql);
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"sign success");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            user_sign(recv_buf,mysql);
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"sign success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         break;
 
         case USER_FIND:
         if(!user_find(recv_buf,mysql)){
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         break;
 

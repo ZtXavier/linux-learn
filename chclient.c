@@ -885,6 +885,9 @@ void *send_mission(void*arg){
     {
         printf("没有[id:%d]的群...\n",send_data->recv_id);
         break;
+    }else if(strcmp(send_data->write_buff,"") == 0){
+        printf("您已退出[id:%d]的群...\n",send_data->recv_id);
+        break;
     }
     }
         send_data->recv_id = 0;
