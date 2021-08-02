@@ -238,18 +238,19 @@ return 1;
 pthread_mutex_unlock(&mutex);
 }
 
-int friend_pls(recv_datas *mybag,MYSQL mysql){
+int friend_pls(recv_datas *mybag,MYSQL mysql)
+{
 MYSQL_RES   *res = NULL;
 MYSQL_ROW   row;
 recv_datas  *recv_data = mybag;
 char         sql[MYSQL_MAX];
-if(strcmp(recv_data->read_buff,"ok") == 0){
-sprintf(sql,"insert into friends values(\'%d\',\'%d\',0);",recv_data->send_id,recv_data->recv_id);
-mysql_query(&mysql,sql);
-bzero(sql,sizeof(sql));
-sprintf(sql,"insert into friends values(\'%d\',\'%d\',0);",recv_data->recv_id,recv_data->send_id);
-mysql_query(&mysql,sql);
-}
+    if(strcmp(recv_data->read_buff,"ok") == 0){
+        sprintf(sql,"insert into friends values(\'%d\',\'%d\',0);",recv_data->send_id,recv_data->recv_id);
+        mysql_query(&mysql,sql);
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"insert into friends values(\'%d\',\'%d\',0);",recv_data->recv_id,recv_data->send_id);
+        mysql_query(&mysql,sql);
+    }
 }
 
 int del_friend(recv_datas *mybag,MYSQL mysql){
