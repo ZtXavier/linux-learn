@@ -971,23 +971,35 @@ int send_file(recv_datas *mybag,MYSQL mysql){
     recv_datas *recv_data = mybag;
     if((fp = open("file",O_WRONLY|O_CREAT|O_APPEND,0664)) < 0){
         printf("%s\n",strerror(errno));
-    }
-    write(fp,recv_data->read_buff,strlen(recv_data->read_buff));
+    }if(recv_data->flag == 0){
+    write(fp,recv_data->read_buff,recv_data->mun);
     close(fp);
-    if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
+        if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+    }else{
+        write(fp,recv_data->read_buff,sizeof(recv_data->read_buff)-1);
+        close(fp);
+        if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
     }
 }
 
 int read_file(recv_datas *mybag,MYSQL mysql){
     int fp;
     recv_datas  *recv_data = mybag;
+    ssize_t l;
     if((fp = open("file",O_RDONLY)) < 0){
         printf("%s\n",strerror(errno));
     }
+    recv_data->flag = 1;
+    recv_data->mun = -1;
     bzero(recv_data->read_buff,sizeof(recv_data->read_buff));
     lseek(fp,(sizeof(recv_data->read_buff)-1)*recv_data->cont,SEEK_SET);
-    if(read(fp,recv_data->read_buff,(sizeof(recv_data->read_buff)-1)) == 0){
+    if((l = read(fp,recv_data->read_buff,(sizeof(recv_data->read_buff)-1))) < (sizeof(recv_data->read_buff)-1)){
+        recv_data->flag = 0;
+        recv_data->mun = l;
         strcpy(recv_data->write_buff,"finish");
     }
     close(fp);

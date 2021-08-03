@@ -74,6 +74,7 @@ void *send_mission(void*arg){
         char  password1[24],password2[24];
         char  buf[50];
         int   sure;
+        struct stat buff;
         send_data = (recv_datas*)malloc(sizeof(recv_datas));
         while(1){
         printf("\t***************************************\n");
@@ -913,7 +914,6 @@ void *send_mission(void*arg){
 
     case 22:
     int fp;
-    struct stat *buff;
     bzero(buf,sizeof(buf));
     send_data->type = SEND_FILE;
     send_data->cont = 0;
@@ -929,14 +929,17 @@ void *send_mission(void*arg){
     if(sure != 1){
     break;
     }
+    send_data->flag = 1;
+    send_data->mun = -1;
     bzero(send_data->write_buff,sizeof(send_data->write_buff));
-    if(stat(buf,buff) != 0){
+    if(stat(buf,&buff) != 0){
         printf("%s\n",strerror(errno));
         printf("按任意键返回...");
         getchar();
         break;
     }
-        strcpy(send_data->write_buff,buf);
+    send_data->filesize = buff.st_size;
+    strcpy(send_data->write_buff,buf);
     if((fp = open(send_data->write_buff,O_RDONLY)) < 0){
         printf("%s\n",strerror(errno));
         printf("按任意键返回...");
@@ -945,14 +948,23 @@ void *send_mission(void*arg){
     }
         bzero(send_data->read_buff,sizeof(send_data->read_buff));
         printf("正在发送...");
+        ssize_t l;
     while(1){
-        if(read(fp,send_data->read_buff,sizeof(send_data->read_buff)-1) == 0)
-        {
-        break;
+        if((l = read(fp,send_data->read_buff,sizeof(send_data->read_buff)-1)) < (sizeof(send_data->read_buff)-1)){
+            send_data->flag = 0;        //文件最后截止的提示
+            send_data->mun = l;         //文件最后的长度
+            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_wait(&cl_co, &cl_mu);
+            pthread_mutex_unlock(&cl_mu);
+            send_data->cont++;
+            printf("已发送%d个包\n",send_data->cont);
+            break;
         }
-        if(send(connfd,send_data,sizeof(recv_datas),0) < 0)
-        {
-        my_err("send",__LINE__);
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
         }
         pthread_mutex_lock(&cl_mu);
         pthread_cond_wait(&cl_co, &cl_mu);
@@ -975,9 +987,9 @@ void *send_mission(void*arg){
         else if(strcmp(send_data->write_buff,"outline") == 0){
         printf("对方不在线，无法收到你的文件!\n");
         }
+        send_data->recv_id = 0;
         printf("按任意键继续...");
         getchar();
-        send_data->recv_id = 0;
     break;
 
 
@@ -988,7 +1000,7 @@ void *send_mission(void*arg){
             getchar();
             break;
     }
-            printf("[id:%d][name:%s]给你发送了文件%s!",file_info->send_id,file_info->send_nickname,file_info->filepath);
+            printf("[id:%d][name:%s]给你发送了[文件%s大小为%d]!",file_info->send_id,file_info->send_nickname,file_info->filepath,file_info->filesize);
     while(1){
             printf("处理方式:[1.接收] [2.拒绝]\n");
             scanf("%d",&sure);
@@ -1022,6 +1034,7 @@ void *send_mission(void*arg){
         else if(sure == 2){
             printf("你拒绝了id:%d的文件...",file_info->send_id);
             file_info->num = 0;
+            file_info->filesize = 0;
             bzero(file_info,sizeof(file_info));
             printf("按任意键继续");
             getchar();
@@ -1146,6 +1159,7 @@ void *recv_file(void*connfd){
 pthread_mutex_lock(&cl_mu);
 file_info->num = 1;
 file_info->send_id = recv_data->send_id;
+file_info->filesize = recv_data->filesize;
 strcpy(file_info->filepath,recv_data->write_buff);
 strcpy(file_info->send_nickname,recv_data->send_name);
 //printf("[id:%d][name:%s]给你发送了文件%s!",file_info->send_id,file_info->send_nickname,file_info->filepath);
@@ -1427,10 +1441,15 @@ void *recv_mission(void*arg){
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
             if((fp = open("recv_file",O_WRONLY|O_CREAT|O_APPEND,0664)) < 0){
-            my_err("open",__LINE__);
+                my_err("open",__LINE__);
             }
-            write(fp,recv_data->read_buff,strlen(recv_data->read_buff));
+            if(recv_data->flag == 0){
+                write(fp,recv_data->read_buff,recv_data->mun);
+                close(fp);
+            }else{
+            write(fp,recv_data->read_buff,sizeof(recv_data->read_buff)-1);
             close(fp);
+            }
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;

@@ -64,6 +64,9 @@ pthread_mutex_t cl_mu;
 pthread_cond_t  cl_co;
 
 typedef struct{
+    int     filesize;
+    int     mun;
+    int     flag;
     int     type;
     int     sendfd;
     int     recvfd;
@@ -88,6 +91,7 @@ typedef struct file{
     int        num;
     int        send_id;
     char       send_nickname[50];
+    int        filesize;
 }FILE_INFO;
 
 typedef struct message{
