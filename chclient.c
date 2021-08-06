@@ -870,20 +870,17 @@ void *send_mission(void*arg){
         bzero(send_data->read_buff,sizeof(send_data->read_buff));
         fgets(send_data->read_buff,sizeof(send_data->read_buff),stdin);
         send_data->read_buff[strlen(send_data->read_buff)-1] = '\0';
-    if(strcmp(send_data->read_buff,"#over#") == 0)
-    {
+    if(strcmp(send_data->read_buff,"#over#") == 0){
         printf("您已退出群聊...\n");
         break;
     }
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0)
-    {
+    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
     }
         pthread_mutex_lock(&cl_mu);
         pthread_cond_wait(&cl_co, &cl_mu);
         pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"no group") == 0)
-    {
+    if(strcmp(send_data->write_buff,"no group") == 0){
         printf("没有[id:%d]的群...\n",send_data->recv_id);
         break;
     }else if(strcmp(send_data->write_buff,"") == 0){
@@ -902,8 +899,7 @@ void *send_mission(void*arg){
         printf("按任意键继续...");
         getchar();
     }else{
-        for(i = 0;i < box->group_msg_num;i++)
-        {
+        for(i = 0;i < box->group_msg_num;i++){
         printf("<群id:%d>[id:%d][name:%s]说:%s\n",box->group_id[i],box->group_send_id[i],box->group_mem_nikename[i],box->group_message[i]);
         }
         box->group_msg_num = 0;
@@ -951,6 +947,7 @@ void *send_mission(void*arg){
         ssize_t l;
     while(1){
         if((l = read(fp,send_data->read_buff,sizeof(send_data->read_buff)-1)) < (sizeof(send_data->read_buff)-1)){
+            //如果读到的字节数小于规定的包的大小，将最后一个包的大小存入l
             send_data->flag = 0;        //文件最后截止的提示
             send_data->mun = l;         //文件最后的长度
             if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
@@ -1109,62 +1106,63 @@ pthread_exit(0);
 void *look_list(void * connfd){
     bzero(flist,sizeof(FRIENDS));
     if(recv(*(int*)connfd,flist,sizeof(FRIENDS),MSG_WAITALL) < 0){
-    my_err("recv",__LINE__);
+        my_err("recv",__LINE__);
     }
     pthread_exit(0);
 }
 
 void *box_check(void * connfd){
-if(recv(*(int*)connfd,box,sizeof(BOX_MSG),MSG_WAITALL) < 0){
-my_err("recv",__LINE__);
-}
-pthread_exit(0);
+    if(recv(*(int*)connfd,box,sizeof(BOX_MSG),MSG_WAITALL) < 0){
+        my_err("recv",__LINE__);
+    }
+    printf("\t离线收到的消息:--好友消息:%d条--好友邀请:%d条--群消息:%d条\n",box->recv_msgnum,box->fri_pls_num,box->group_msg_num);
+    pthread_exit(0);
 }
 
 void *look_msg(void * connfd){
-if(recv(*(int*)connfd,msg,sizeof(MSG), MSG_WAITALL) < 0){
-my_err("recv", __LINE__);
-}
-pthread_exit(0);
+    if(recv(*(int*)connfd,msg,sizeof(MSG), MSG_WAITALL) < 0){
+        my_err("recv", __LINE__);
+    }
+    pthread_exit(0);
 }
 
 void *look_group_info(void *connfd){
-if(recv(*(int*)connfd,grp_info_list,sizeof(GRP_INFO), MSG_WAITALL) < 0){
-my_err("recv", __LINE__);
-}
-pthread_exit(0);
+    if(recv(*(int*)connfd,grp_info_list,sizeof(GRP_INFO), MSG_WAITALL) < 0){
+        my_err("recv", __LINE__);
+    }
+    pthread_exit(0);
 }
 
 void *look_group_mem(void *connfd){
-if(recv(*(int*)connfd,group_mem,sizeof(GRP_MEM_LIST), MSG_WAITALL) < 0){
-my_err("recv", __LINE__);
-}
-pthread_exit(0);
+    if(recv(*(int*)connfd,group_mem,sizeof(GRP_MEM_LIST), MSG_WAITALL) < 0){
+        my_err("recv", __LINE__);
+    }
+    pthread_exit(0);
 }
 
 void *recv_group_msg(void * connfd){
-if(recv_data->recv_id == send_data->recv_id){
-printf("[群id:%d][昵称:%s][id:%d][name:%s]:%s\n",recv_data->recv_id,recv_data->recv_name,recv_data->send_id,recv_data->send_name,recv_data->read_buff);
-}else{
-strcpy(box->group_message[box->group_msg_num],recv_data->read_buff); //发的消息
-box->group_send_id[box->group_msg_num] = recv_data->send_id;         //发消息的id
-strcpy(box->group_mem_nikename[box->group_msg_num],recv_data->send_name);
-box->group_id[box->group_msg_num++] = recv_data->recv_id;
-printf("您收到一条群消息\n");
-}
-pthread_exit(0);
+    if(recv_data->recv_id == send_data->recv_id){
+    printf("[群id:%d][昵称:%s][id:%d][name:%s]:%s\n",recv_data->recv_id,recv_data->recv_name,recv_data->send_id,recv_data->send_name,recv_data->read_buff);
+    }else{
+        strcpy(box->group_message[box->group_msg_num],recv_data->read_buff); //发的消息
+        box->group_send_id[box->group_msg_num] = recv_data->send_id;         //发消息的id
+        strcpy(box->group_mem_nikename[box->group_msg_num],recv_data->send_name);
+        box->group_id[box->group_msg_num++] = recv_data->recv_id;
+        printf("您收到一条群消息\n");
+    }
+    pthread_exit(0);
 }
 
 void *recv_file(void*connfd){
-pthread_mutex_lock(&cl_mu);
-file_info->num = 1;
-file_info->send_id = recv_data->send_id;
-file_info->filesize = recv_data->filesize;
-strcpy(file_info->filepath,recv_data->write_buff);
-strcpy(file_info->send_nickname,recv_data->send_name);
-//printf("[id:%d][name:%s]给你发送了文件%s!",file_info->send_id,file_info->send_nickname,file_info->filepath);
-pthread_mutex_unlock(&cl_mu);
-pthread_exit(0);
+    pthread_mutex_lock(&cl_mu);
+    file_info->num = 1;
+    file_info->send_id = recv_data->send_id;
+    file_info->filesize = recv_data->filesize;
+    strcpy(file_info->filepath,recv_data->write_buff);
+    strcpy(file_info->send_nickname,recv_data->send_name);
+    //printf("[id:%d][name:%s]给你发送了文件%s!",file_info->send_id,file_info->send_nickname,file_info->filepath);
+    pthread_mutex_unlock(&cl_mu);
+    pthread_exit(0);
 }
 
 void *recv_mission(void*arg){
@@ -1172,12 +1170,12 @@ void *recv_mission(void*arg){
     int   ret;
     int   fp;
     pthread_t tid;
-    file_info = (FILE_INFO *)malloc(sizeof(FILE_INFO));
-    recv_data  = (recv_datas*)malloc(sizeof(recv_datas));
+    msg = (MSG*)malloc(sizeof(MSG));
     box = (BOX_MSG*)malloc(sizeof(BOX_MSG));
     flist = (FRIENDS *)malloc(sizeof(FRIENDS));
-    msg = (MSG*)malloc(sizeof(MSG));
+    file_info = (FILE_INFO *)malloc(sizeof(FILE_INFO));
     grp_info_list = (GRP_INFO *)malloc(sizeof(GRP_INFO));
+    recv_data  = (recv_datas*)malloc(sizeof(recv_datas));
     group_mem = (GRP_MEM_LIST *)malloc(sizeof(GRP_MEM_LIST));
     while(1){
         bzero(recv_data,sizeof(recv_datas));
@@ -1198,7 +1196,7 @@ void *recv_mission(void*arg){
             //send_data->sendfd = recv_data->recvfd;
             pthread_create(&tid,NULL,box_check,arg);
             pthread_join(tid, NULL);
-            printf("\t离线收到的消息:--好友消息:%d条--好友邀请:%d条--群消息:%d条\n",box->recv_msgnum,box->fri_pls_num,box->group_msg_num);
+            //printf("\t离线收到的消息:--好友消息:%d条--好友邀请:%d条--群消息:%d条\n",box->recv_msgnum,box->fri_pls_num,box->group_msg_num);
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
@@ -1440,7 +1438,7 @@ void *recv_mission(void*arg){
             pthread_mutex_lock(&cl_mu);
             bzero(send_data->write_buff,sizeof(send_data->write_buff));
             strcpy(send_data->write_buff,recv_data->write_buff);
-            if((fp = open("recv_file",O_WRONLY|O_CREAT|O_APPEND,0664)) < 0){
+            if((fp = open("recv_file",O_WRONLY|O_CREAT|O_APPEND,0775)) < 0){
                 my_err("open",__LINE__);
             }
             if(recv_data->flag == 0){
@@ -1471,10 +1469,10 @@ int main(){
     bzero(&servaddr,sizeof(struct sockaddr_in));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(PORT);
-    inet_pton(AF_INET,"127.0.0.1",(void*)&servaddr.sin_addr.s_addr);
+    inet_pton(AF_INET,"127.0.0.1",(void*)&servaddr.sin_addr.s_addr); //将其转化为网络地址
     printf("正在与服务器建立连接...\n");
     if((connect(connfd,(struct sockaddr*)&servaddr,sizeof(servaddr))) < 0){
-        perror("connect");
+        my_err("connect",__LINE__);
     }else
     printf("与服务器链接成功！！！\n");
     pthread_create(&tid1,NULL,send_mission,(void*)&connfd);
@@ -1483,6 +1481,3 @@ int main(){
     pthread_join(tid2, NULL);
     return 0;
 }
-
-
-

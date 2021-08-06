@@ -11,7 +11,7 @@ const int NUMBER = 3;    // 每次添加的最大线程数(定义为常量)
 /* 任务结构体，任务回调函数，任务队列 */
 typedef struct mission{
     void *(*func)(void* arg);     //任务回调函数:由于所存储的任务基于函数完成，所以来存储函数的地址
-    void *arg;                    //回调函数的参数  
+    void *arg;                    //回调函数的参数
 }CThread_mission;
 
 
@@ -140,30 +140,30 @@ void * worker(void* arg){
     //先将函数类型转换
     threadpool *pool = (threadpool*)arg;
     //由于该函数需要不断向任务队列中取任务，所以先来个循环
-    while(1){      
-       pthread_mutex_lock(&pool->pool_mutex);
+    while(1){
+        pthread_mutex_lock(&pool->pool_mutex);
        //当前任务队列是否为空，while是用来连续判断每个进来的线程所要的任务队列中的任务是否为空
-       while((pool->queue_size_mission == 0) && !(pool->shutdown)){// 使用while而不用if是为了防止其虚假唤醒，也就是没有broadcast或signal时wait有返回值（下面的生产者阻塞也同理）
+        while((pool->queue_size_mission == 0) && !(pool->shutdown)){// 使用while而不用if是为了防止其虚假唤醒，也就是没有broadcast或signal时wait有返回值（下面的生产者阻塞也同理）
            //若为空且线程池未关闭,阻塞工作线程（线程池为空说明没有任务，所以阻塞消费者）
-           pthread_cond_wait(&pool->notEmpty,&pool->pool_mutex);
+            pthread_cond_wait(&pool->notEmpty,&pool->pool_mutex);
            //pool->notEmpty用来唤醒线程，用来记录哪些任务被阻塞，若为零则阻塞，不为零时下次将该处阻塞的地方唤醒
             if(pool->exitnum > 0){
             pool->exitnum--;       //每次唤醒线程后，要销毁的线程数减一
             //在判断线程池中最小线程数小于存在线程后才可将存在的空闲的线程销毁
             if(pool->livenum > pool->minthread_num){
 
-            pool->livenum--;       
+            pool->livenum--;
             pthread_mutex_unlock(&pool->pool_mutex);
             threadexit(pool);
 
             }
-          }
-       }
+        }
+    }
        // 判断线程池是否关闭
-       if(pool->shutdown){
-           pthread_mutex_unlock(&pool->pool_mutex);
-           threadexit(pool);
-       }
+        if(pool->shutdown){
+            pthread_mutex_unlock(&pool->pool_mutex);
+            threadexit(pool);
+        }
 
        //从任务队列中取出一个任务
        CThread_mission mission;
