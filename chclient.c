@@ -76,880 +76,878 @@ void *send_mission(void*arg){
         int   sure;
         struct stat buff;
         send_data = (recv_datas*)malloc(sizeof(recv_datas));
-        while(1){
+            while(1){
+            printf("\t***************************************\n");
+            printf("\t************欢迎来到登录界面***********\n");
+            printf("\t***************************************\n");
+            printf("\t*****        1.登录               *****\n");
+            printf("\t*****                             *****\n");
+            printf("\t*****        2.注册               *****\n");
+            printf("\t*****                             *****\n");
+            printf("\t*****        3.找回密码           *****\n");
+            printf("\t*****                             *****\n");
+            printf("\t*****        0.退出               *****\n");
+            printf("\t***************************************\n");
+            printf("\t***************************************\n");
+            printf("请选择: ");
+            scanf("%d",&choice);
+            getchar();
+            switch(choice){
+                case 1:        //登陆
+                send_data->type = USER_LOGIN;
+                printf("please input id: ");
+                scanf("%d",&send_data->send_id);
+                getchar();
+                printf("please input password: ");
+                bzero(send_data->read_buff,sizeof(send_data->read_buff));
+                i = 0;
+                my_passwd(send_data->read_buff);
+                printf("\n");
+                bzero(send_data->write_buff,sizeof(send_data->write_buff));
+                if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+                }
+                pthread_mutex_lock(&cl_mu);
+                pthread_cond_wait(&cl_co,&cl_mu);
+                pthread_mutex_unlock(&cl_mu);
+                printf("\t--%s--\n",send_data->write_buff);
+            break;
+
+
+            case 2:
+                i = 0;            //注册
+                send_data->type = USER_SIGN;
+                printf("please input you name: ");
+                scanf("%s",send_data->send_name);
+                getchar();
+                printf("please input passwd: ");
+                my_passwd(password1);
+                printf("\n");
+                printf("please input passwd again: ");
+                i = 0;
+                my_passwd(password2);
+                printf("\n");
+            if(strcmp(password1,password2) == 0){
+                printf("输入一致!\n");
+                bzero(send_data->read_buff,sizeof(send_data->read_buff));
+                strcpy(send_data->read_buff,password1);
+                if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                    my_err("send",__LINE__);
+                }
+                pthread_mutex_lock(&cl_mu);
+                pthread_cond_wait(&cl_co,&cl_mu);
+                pthread_mutex_unlock(&cl_mu);
+            }
+            else{
+                printf("两次输入不一致\n");
+                printf("按回车继续\n");
+                choice = 10;
+                getchar();
+            }
+            break;
+
+            case 3:           //找回
+                send_data->type = USER_FIND;
+                printf("please input your id:");
+                scanf("%d",&send_data->send_id);
+                getchar();
+                printf("please input your nickname:");
+                scanf("%s",send_data->send_name);
+                getchar();
+                if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                    my_err("send",__LINE__);
+                }
+                pthread_mutex_lock(&cl_mu);
+                pthread_cond_wait(&cl_co,&cl_mu);
+                pthread_mutex_unlock(&cl_mu);
+                printf("%s\n",send_data->write_buff);
+                printf("按任意键返回...");
+                getchar();
+            break;
+
+            case 0:
+                send_data->type = USER_OUT;   //登出
+            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+                pthread_exit(0);
+            break;
+
+            default:
+                printf("非法输入！\n");
+                printf("按任意键继续\n");
+                getchar();
+            break;
+            }
+            if((choice > 3) || (choice < 0))    continue;
+            else if (choice == 1){
+                if (strcmp(send_data->write_buff, "id error") == 0){
+                    printf("ID or PASSWD error!!!\n");
+                    printf("按任意键继续...\n");
+                    getchar();
+                    continue;
+                }
+                else if(strcmp(send_data->write_buff,"login success") == 0){
+                    printf("按任意键继续...\n");
+                    getchar();
+                    break;
+                    }
+            }
+            else if (choice == 2){
+                printf("%s\n",send_data->write_buff);
+                printf("您的账号为:%d\n", send_data->send_id);
+                printf("按下回车继续.......");
+                getchar();
+                continue;
+            }
+            else if(choice == 3)   continue;
+        }
+    while(1){
         printf("\t***************************************\n");
-        printf("\t************欢迎来到登录界面***********\n");
+        printf("\t********welcome to chatroom************\n");
         printf("\t***************************************\n");
-        printf("\t*****        1.登录               *****\n");
+        printf("\t*****        1.私聊               *****\n");
         printf("\t*****                             *****\n");
-        printf("\t*****        2.注册               *****\n");
+        printf("\t*****        2.加好友             *****\n");
         printf("\t*****                             *****\n");
-        printf("\t*****        3.找回密码           *****\n");
+        printf("\t*****        3.好友请求           *****\n");
         printf("\t*****                             *****\n");
-        printf("\t*****        0.退出               *****\n");
-        printf("\t***************************************\n");
+        printf("\t*****        4.删除好友           *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        5.查看好友列表       *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        6.拉黑好友           *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        7.取消拉黑           *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        8.查看好友消息       *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        9.查看聊天记录       *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        10.删除聊天记录      *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        11.创建群            *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        12.解散群(只限群主)  *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        13.加群              *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        14.退群              *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        15.设置管理员        *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        16.取消管理员        *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        17.踢人              *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        18.查看加入的群      *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        19.查看群成员        *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        20.群聊              *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        21.查看群消息        *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        22.发送文件          *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        23.接收文件          *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        24.修改密码          *****\n");
+        printf("\t*****                             *****\n");
+        printf("\t*****        0.退出              *****\n");
+        printf("\t*****                             *****\n");
         printf("\t***************************************\n");
         printf("请选择: ");
         scanf("%d",&choice);
         getchar();
-        switch(choice){
-            case 1:        //登陆
-            send_data->type = USER_LOGIN;
-            printf("please input id: ");
-            scanf("%d",&send_data->send_id);
-            getchar();
-            printf("please input password: ");
+        switch(choice)
+        {
+        case 1:
+        send_data->type = SEND_INFO;
+        while(1)
+        {
+        printf("please input your friend id: ");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        if(send_data->recv_id != send_data->send_id)
+        {
+        break;
+        }
+        printf("正常点，不要自言自语!!!\n");
+        printf("按任意键继续");
+        getchar();
+        }
+        printf("\t--与->%d<-好友聊天窗口--\n",send_data->recv_id);
+        while(1){
             bzero(send_data->read_buff,sizeof(send_data->read_buff));
-            i = 0;
-            my_passwd(send_data->read_buff);
-            printf("\n");
-            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            fgets(send_data->read_buff,sizeof(send_data->read_buff),stdin);
+            send_data->read_buff[strlen(send_data->read_buff)-1] = '\0';
+            if(strcmp(send_data->read_buff,"#over#") == 0){
+                printf("\t--与->%d<-好友聊天结束--\n",send_data->recv_id);
+                break;
+            }
             if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
             my_err("send",__LINE__);
             }
             pthread_mutex_lock(&cl_mu);
             pthread_cond_wait(&cl_co,&cl_mu);
             pthread_mutex_unlock(&cl_mu);
-            printf("\t--%s--\n",send_data->write_buff);
+            if(strcmp(send_data->write_buff,"send fail") == 0){
+                printf("没有该[id:%d]的好友!!!\n",send_data->recv_id);
+                printf("按任意键继续...");
+                getchar();
+                break;
+            }
+        }
+        send_data->recv_id = 0;
+        break;
+
+        case 2:    //添加好友
+        send_data->type = ADD_FRIEND;
+        while(1){
+            printf("请输入想加好友的id：");
+            scanf("%d",&send_data->recv_id);
+            getchar();
+            if(send_data->send_id != send_data->recv_id)
+            {
+                break;
+            }
+            printf("没朋友？太孤单寂寞了吧！！！");
+            printf("按任意键继续");
+            getchar();
+        }
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_wait(&cl_co,&cl_mu);
+            pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"ok") == 0){
+            printf("发送成功！等待对方确认...\n");
+            printf("按任意键继续...");
+            getchar();
+        }
+        else{
+            printf("对方已经是你的好友或者对方不存在!!!\n");
+            printf("按任意键继续...\n");
+            getchar();
+        }
+        bzero(send_data->write_buff,sizeof(send_data->write_buff));
+        send_data->recv_id = 0;
         break;
 
 
-        case 2:
-            i = 0;            //注册
-            send_data->type = USER_SIGN;
-            printf("please input you name: ");
-            scanf("%s",send_data->send_name);
+        case 3:    //好友请求
+        pthread_mutex_lock(&cl_mu);
+        send_data->type = FRIEND_PLS;
+        if(!box->fri_pls_num)
+        {
+            printf("没有收到好友请求\n");
+            printf("按任意键继续...\n");
             getchar();
-            printf("please input passwd: ");
-            my_passwd(password1);
-            printf("\n");
-            printf("please input passwd again: ");
-            i = 0;
-            my_passwd(password2);
-            printf("\n");
-        if(strcmp(password1,password2) == 0){
-            printf("输入一致!\n");
-            bzero(send_data->read_buff,sizeof(send_data->read_buff));
-            strcpy(send_data->read_buff,password1);
-            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-                my_err("send",__LINE__);
-            }
-            pthread_mutex_lock(&cl_mu);
-            pthread_cond_wait(&cl_co,&cl_mu);
             pthread_mutex_unlock(&cl_mu);
         }
         else
         {
-            printf("两次输入不一致\n");
-            printf("按回车继续\n");
-            choice = 10;
-            getchar();
-        }
-        break;
-
-        case 3:           //找回
-            send_data->type = USER_FIND;
-            printf("please input your id:");
-            scanf("%d",&send_data->send_id);
-            getchar();
-            printf("please input your nickname:");
-            scanf("%s",send_data->send_name);
-            getchar();
-            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-                my_err("send",__LINE__);
+            for(int i = 0;i < box->fri_pls_num;i++){
+                printf("%s\n",box->send_pls[i]);
+                send_data->recv_id = box->fri_pls_id[i];
+                printf("如何处理[1.同意][2.拒绝]\n选吧(选择除了-1-2-其他都作为-拒绝-):");
+                scanf("%d",&choice);
+                getchar();
+                if(choice == 1){
+                    strcpy(send_data->read_buff,"ok");
+                    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                        my_err("send",__LINE__);
+                    }
+                }else if(choice == 2)
+                {
+                    strcpy(send_data->read_buff,"no");
+                    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                        my_err("send",__LINE__);
+                    }
+                    else{
+                        continue;
+                    }
+                }
             }
-            pthread_mutex_lock(&cl_mu);
-            pthread_cond_wait(&cl_co,&cl_mu);
-            pthread_mutex_unlock(&cl_mu);
-            printf("%s\n",send_data->write_buff);
-            printf("按任意键返回...");
-            getchar();
+        }
+        box->fri_pls_num = 0;
+        printf("处理完成...\n");
+        printf("按任意键继续...");
+        pthread_mutex_unlock(&cl_mu);
+        bzero(send_data->write_buff,sizeof(send_data->write_buff));
+        bzero(send_data->read_buff,sizeof(send_data->read_buff));
+        send_data->recv_id = 0;
+        getchar();
         break;
 
-        case 0:
-            send_data->type = USER_OUT;   //登出
+        case 4:                //删除好友
+        send_data->type = DEL_FRIEND;
+        printf("请输入你想要删除的好友id: ");
+        scanf("%d",&send_data->recv_id);
+        getchar();
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
             my_err("send",__LINE__);
         }
-            pthread_exit(0);
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co,&cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"delete success") == 0){
+            printf("delete success!\n");
+            printf("按任意键继续..");
+            getchar();
+        }else{
+            printf("您没有[id:%d]的好友!\n",send_data->recv_id);
+            printf("按任意键继续..");
+            getchar();
+        }
+        bzero(send_data->write_buff,sizeof(send_data->write_buff));
         break;
 
-        default:
-            printf("非法输入！\n");
-            printf("按任意键继续\n");
-            getchar();
-        break;
-        }
-        if((choice > 3) || (choice < 0))    continue;
-        else if (choice == 1){
-            if (strcmp(send_data->write_buff, "id error") == 0)
-            {
-            printf("ID or PASSWD error!!!\n");
-            printf("按任意键继续.....\n");
-            getchar();
-            continue;
-            }
-            else if(strcmp(send_data->write_buff,"id success") == 0)
-            {
-            printf("按下回车继续......\n");
-            getchar();
-            break;
-            }
-        }
-        else if (choice == 2)
-        {
-            printf("%s\n",send_data->write_buff);
-            printf("您的账号为:%d\n", send_data->send_id);
-            printf("按下回车继续.......");
-            getchar();
-            continue;
-        }
-        else if(choice == 3)   continue;
-    }
-    while(1)
-    {
-    printf("\t***************************************\n");
-    printf("\t********welcome to chatroom************\n");
-    printf("\t***************************************\n");
-    printf("\t*****        1.私聊               *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        2.加好友             *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        3.好友请求           *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        4.删除好友           *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        5.查看好友列表       *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        6.拉黑好友           *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        7.取消拉黑           *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        8.查看好友消息       *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        9.查看聊天记录       *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        10.删除聊天记录      *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        11.创建群            *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        12.解散群(只限群主)  *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        13.加群              *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        14.退群              *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        15.设置管理员        *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        16.取消管理员        *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        17.踢人              *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        18.查看加入的群      *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        19.查看群成员        *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        20.群聊              *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        21.查看群消息        *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        22.发送文件          *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        23.接收文件          *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        24.修改密码          *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t*****        0.退出              *****\n");
-    printf("\t*****                             *****\n");
-    printf("\t***************************************\n");
-    printf("请选择: ");
-    scanf("%d",&choice);
-    getchar();
-    switch(choice)
-    {
-    case 1:
-    send_data->type = SEND_INFO;
-    while(1)
-    {
-    printf("please input your friend id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    if(send_data->recv_id != send_data->send_id)
-    {
-    break;
-    }
-    printf("正常点，不要自言自语!!!\n");
-    printf("按任意键继续");
-    getchar();
-    }
-    printf("\t--可以与->%d<-好友聊天--\n",send_data->recv_id);
-    while(1){
-        bzero(send_data->read_buff,sizeof(send_data->read_buff));
-        fgets(send_data->read_buff,sizeof(send_data->read_buff),stdin);
-        send_data->read_buff[strlen(send_data->read_buff)-1] = '\0';
-        if(strcmp(send_data->read_buff,"#over#") == 0){
-            printf("\t--与->%d<-好友聊天结束--\n",send_data->recv_id);
-            break;
-        }
+
+        case 5:                //查看好友列表
+        send_data->type = LOOK_FRI_LS;
         if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
         my_err("send",__LINE__);
         }
         pthread_mutex_lock(&cl_mu);
         pthread_cond_wait(&cl_co,&cl_mu);
         pthread_mutex_unlock(&cl_mu);
-        if(strcmp(send_data->write_buff,"send fail") == 0){
-            printf("没有该[id:%d]的好友!!!\n",send_data->recv_id);
+        if(strcmp(send_data->write_buff,"nice") == 0){
+            printf("friend list：\n");
+            for(i = 0;i < flist->friend_num;i++){
+                printf("-[id:%d]-[name:%s]-",flist->friend_id[i],flist->friend_nickname[i]);
+                if(flist->friend_state[i] == 1){
+                    printf("online\n");
+                }else{
+                    printf("outline\n");
+                }
+            }
+            printf("按任意键继续...\n");
+            getchar();
+        }else if(strcmp(send_data->write_buff,"bad") == 0){
+            printf("您还没有好友...\n");
             printf("按任意键继续...");
             getchar();
-            break;
         }
-    }
-    send_data->recv_id = 0;
-    break;
+        break;
 
-    case 2:    //添加好友
-    send_data->type = ADD_FRIEND;
-    while(1)
-    {
-        printf("请输入想加好友的id：");
+        case 6:              //拉黑好友
+        send_data->type = BLACK_LIST;
+        printf("选择要拉黑的好友id: ");
         scanf("%d",&send_data->recv_id);
         getchar();
-        if(send_data->send_id != send_data->recv_id)
-        {
-            break;
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
         }
-        printf("没朋友？太孤单寂寞了吧！！！");
-        printf("按任意键继续");
-        getchar();
-    }
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0)
-    {
-        my_err("send",__LINE__);
-    }
         pthread_mutex_lock(&cl_mu);
         pthread_cond_wait(&cl_co,&cl_mu);
         pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"ok") == 0)
-    {
-        printf("发送成功！等待对方确认...\n");
-        printf("按任意键继续...");
-        getchar();
-    }
-    else
-    {
-        printf("对方已经是你的好友或者对方不存在!!!\n");
-        printf("按任意键继续...\n");
-        getchar();
-    }
-    bzero(send_data->write_buff,sizeof(send_data->write_buff));
-    send_data->recv_id = 0;
-    break;
-
-
-    case 3:    //好友请求
-    pthread_mutex_lock(&cl_mu);
-    send_data->type = FRIEND_PLS;
-    if(!box->fri_pls_num)
-    {
-        printf("没有收到好友请求\n");
-        printf("按任意键继续...\n");
-        getchar();
-        pthread_mutex_unlock(&cl_mu);
-    }
-    else
-    {
-        for(int i = 0;i < box->fri_pls_num;i++){
-            printf("%s\n",box->send_pls[i]);
-            send_data->recv_id = box->fri_pls_id[i];
-            printf("如何处理[1.同意][2.拒绝]\n选吧(选择除了-1-2-其他都作为-拒绝-):");
-            scanf("%d",&choice);
+        if(strcmp(send_data->write_buff,"black success") == 0){
+            printf("拉黑[id:%d]好友成功\n",send_data->recv_id);
+            printf("按任意键继续...");
             getchar();
-            if(choice == 1){
-                strcpy(send_data->read_buff,"ok");
-                if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-                    my_err("send",__LINE__);
-                }
-            }else if(choice == 2)
-            {
-                strcpy(send_data->read_buff,"no");
-                if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-                    my_err("send",__LINE__);
-                }
-                else{
-                    continue;
-                }
+        }else{
+            printf("您没有该好友...\n");
+            printf("按任意键继续...");
+            getchar();
+        }
+        send_data->recv_id = 0;
+        bzero(send_data->write_buff,sizeof(send_data->write_buff));
+        break;
+
+        case 7:        //解除好友黑名单
+        send_data->type = QUIT_BLACK;
+        printf("请输入要解黑的好友id: ");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co,&cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"quit ok") == 0){
+            printf("解黑[id:%d]好友成功\n",send_data->recv_id);
+            printf("按任意键继续...");
+            getchar();
+        }else{
+            printf("您没有该好友...\n");
+            printf("按任意键继续...");
+            getchar();
+        }
+        send_data->recv_id = 0;
+        bzero(send_data->write_buff,sizeof(send_data->write_buff));
+        break;
+
+        case 8:   //查看好友消息
+        if(box->recv_msgnum == 0){
+            printf("没有好友消息...\n");
+            printf("按任意键继续...");
+            getchar();
+        }else{
+            for(i = 0;i < box->recv_msgnum;i++){
+                printf("[id:%d]说:%s\n",box->send_id[i],box->send_msg[i]);
+            }
+            box->recv_msgnum = 0;
+            printf("按任意键继续...");
+            getchar();
+        }
+        break;
+
+        case 9:    //查询聊天记录
+        send_data->type = LOOK_HISTORY;
+        printf("请输入要查询与ta聊天记录的好友id: ");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co,&cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(msg->num == 0){
+            printf("没有聊天记录...\n");
+        }else{
+            for(i = 0;i< msg->num;i++){
+                printf("\t[%d 对 %d 说：%s]",msg->send_id[i],msg->recv_id[i],msg->message[i]);
             }
         }
-    }
-    box->fri_pls_num = 0;
-    printf("处理完成...\n");
-    printf("按任意键继续...");
-    pthread_mutex_unlock(&cl_mu);
-    bzero(send_data->write_buff,sizeof(send_data->write_buff));
-    bzero(send_data->read_buff,sizeof(send_data->read_buff));
-    send_data->recv_id = 0;
-    getchar();
-    break;
-
-    case 4:                //删除好友
-    send_data->type = DEL_FRIEND;
-    printf("请输入你想要删除的好友id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co,&cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"delete success") == 0){
-        printf("delete success!\n");
         printf("按任意键继续..");
         getchar();
-    }else{
-        printf("您没有[id:%d]的好友!\n",send_data->recv_id);
-        printf("按任意键继续..");
-        getchar();
-    }
-    bzero(send_data->write_buff,sizeof(send_data->write_buff));
-    break;
-
-
-    case 5:                //查看好友列表
-    send_data->type = LOOK_FRI_LS;
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co,&cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"nice") == 0){
-    printf("friend list：\n");
-    for(i = 0;i < flist->friend_num;i++){
-    printf("-[id:%d]-[name:%s]-",flist->friend_id[i],flist->friend_nickname[i]);
-    if(flist->friend_state[i] == 1){
-    printf("online\n");
-    }else{
-    printf("outline\n");
-    }
-    }
-    printf("按任意键继续...\n");
-    getchar();
-    }else if(strcmp(send_data->write_buff,"bad") == 0){
-        printf("您还没有好友...\n");
-        printf("按任意键继续...");
-        getchar();
-    }
-    break;
-
-    case 6:              //拉黑好友
-    send_data->type = BLACK_LIST;
-    printf("选择要拉黑的好友id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co,&cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"black success") == 0){
-    printf("拉黑[id:%d]好友成功\n",send_data->recv_id);
-    printf("按任意键继续...");
-    getchar();
-    }else{
-    printf("您没有该好友...\n");
-    printf("按任意键继续...");
-    getchar();
-    }
-    send_data->recv_id = 0;
-    bzero(send_data->write_buff,sizeof(send_data->write_buff));
-    break;
-
-    case 7:        //解除好友黑名单
-    send_data->type = QUIT_BLACK;
-    printf("请输入要解黑的好友id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co,&cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"quit ok") == 0){
-    printf("解黑[id:%d]好友成功\n",send_data->recv_id);
-    printf("按任意键继续...");
-    getchar();
-    }else{
-    printf("您没有该好友...\n");
-    printf("按任意键继续...");
-    getchar();
-    }
-    send_data->recv_id = 0;
-    bzero(send_data->write_buff,sizeof(send_data->write_buff));
-    break;
-
-    case 8:   //查看好友消息
-    if(box->recv_msgnum == 0){
-        printf("没有好友消息...\n");
-        printf("按任意键继续...");
-        getchar();
-    }else{
-        for(i = 0;i < box->recv_msgnum;i++){
-            printf("[id:%d]说:%s\n",box->send_id[i],box->send_msg[i]);
-        }
-        box->recv_msgnum = 0;
-        printf("按任意键继续...");
-        getchar();
-    }
-    break;
-
-    case 9:    //查询聊天记录
-    send_data->type = LOOK_HISTORY;
-    printf("请输入要查询与ta聊天记录的好友id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co,&cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(msg->num == 0){
-        printf("没有聊天记录...\n");
-    }else{
-    for(i = 0;i< msg->num;i++){
-    printf("\t[%d 对 %d 说：%s]",msg->send_id[i],msg->recv_id[i],msg->message[i]);
-    }
-    }
-    printf("按任意键继续..");
-    getchar();
-    break;
-
-    case 10: //删除聊天记录
-    send_data->type = DELE_HISTORY;
-    printf("请输入要删除与ta聊天记录的好友id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co,&cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"delete success") == 0){
-    printf("已成功删除!\n");
-    }else{
-    printf("没有与他的聊天记录!\n");
-    }
-    printf("按任意键继续...");
-    getchar();
-    send_data->recv_id = 0;
-    break;
-
-    case 11:  //创建群
-    send_data->type = CREATE_GROUP;
-    bzero(buf,sizeof(buf));
-    printf("请输入你要创建的名称：");
-    scanf("%s",buf);
-    getchar();
-    printf("是否保存? 1-yes 2-no\n");
-    scanf("%d",&sure);
-    getchar();
-    if(sure == 1){
-    strcpy(send_data->recv_name,buf);
-    }else{
-    break;
-    }
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co,&cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"create success") == 0){
-    printf("创建成功!!\n");
-    printf("您的群信息为[id:%d][name:%s]\n",send_data->recv_id,send_data->recv_name);
-    }else{
-    printf("创建失败！！！\n");
-    }
-    printf("按任意键继续...\n");
-    getchar();
-    send_data->recv_id = 0;
-    break;
-
-    case 12: //删除群
-    send_data->type = DISSOLVE_GROUP;
-    printf("请输入要解散的群id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    printf("是否保存? 1-yes 2-no\n");
-    scanf("%d",&sure);
-    getchar();
-    if(sure != 1){
-    break;
-    }
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co, &cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"dissolve success") == 0){
-    printf("群解散成功!!\n");
-    }else if(strcmp(send_data->write_buff,"no group") == 0){
-    printf("群不存在！！！\n");
-    }else if(strcmp(send_data->write_buff,"no num") == 0){
-    printf("我劝你善良!先加群吧>>\n");
-    }else{
-    printf("您不是群主，没有权限！！！\n");
-    }
-    send_data->recv_id = 0;
-    printf("按任意键继续...\n");
-    getchar();
-    break;
-
-    case 13:   //加群
-    send_data->type = ADD_GROUP;
-    printf("请输入你要加入的群id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    printf("是否保存? 1-yes 2-no\n");
-    scanf("%d",&sure);
-    getchar();
-    if(sure != 1){
-    break;
-    }
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co, &cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"add success") == 0){
-    printf("成功加入群[id:%d][群名:%s]!\n",send_data->recv_id,send_data->recv_name);
-    }else if(strcmp(send_data->write_buff,"have done") == 0){
-    printf("您已经加入该群！！！\n");
-    }else{
-    printf("该群不存在！！！\n");
-    }
-    send_data->recv_id = 0;
-    printf("按任意键继续...\n");
-    getchar();
-    break;
-
-
-
-    case 14:
-    send_data->type = EXIT_GROUP;
-    printf("请输入你要退出的群id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    printf("是否保存? 1-yes 2-no\n");
-    scanf("%d",&sure);
-    getchar();
-    if(sure != 1){
-    break;
-    }
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co, &cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"exit success") == 0){
-    printf("退群成功!!\n");
-    }else if(strcmp(send_data->write_buff,"no group") == 0){
-    printf("群不存在！！！\n");
-    }else if(strcmp(send_data->write_buff,"no add") == 0){
-    printf("您未在该群内\n");
-    }else if(strcmp(send_data->write_buff,"host exit") == 0){
-    printf("您为该群群主，您已经解散该群\n");
-    }
-    send_data->recv_id = 0;
-    printf("按任意键继续...\n");
-    getchar();
-    break;
-
-    case 15:            //设置管理员
-    send_data->type = SET_ADMIN;
-    bzero(buf, sizeof(buf));
-    printf("请输入群号: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    printf("请输入要设置管理员的成员id: ");
-    scanf("%s",buf);
-    getchar();
-    if(atoi(buf) == send_data->send_id){
-    printf("咋这么会玩呢,不可以...");
-    getchar();
-    break;
-    }
-    printf("是否保存? 1-yes 2-no\n");
-    scanf("%d",&sure);
-    getchar();
-    if(sure != 1){
-    break;
-    }
-    strcpy(send_data->read_buff,buf);
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co, &cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"success") == 0){
-    printf("[id:%d]已设置为[群:%d]的管理员!!\n",atoi(send_data->read_buff),send_data->recv_id);
-    }else if(strcmp(send_data->write_buff,"not host") == 0){
-    printf("您不是群主，没有该权限！！！\n");
-    }else if(strcmp(send_data->write_buff,"not mem") == 0){
-    printf("ta不是群成员\n");
-    }
-    send_data->recv_id = 0;
-    printf("按任意键继续...\n");
-    getchar();
-    break;
-
-    case 16:
-    bzero(buf,sizeof(buf));
-    send_data->type = QUIT_ADMIN;
-    printf("请输入群id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    printf("请输入你要取消管理员的id: ");
-    scanf("%s",buf);
-    getchar();
-    if(atoi(buf) == send_data->send_id){
-    printf("咋这么会玩呢,不可以...");
-    getchar();
-    break;
-    }
-    printf("是否保存? 1-yes 2-no\n");
-    scanf("%d",&sure);
-    getchar();
-    if(sure != 1){
-    break;
-    }
-    strcpy(send_data->read_buff,buf);
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co, &cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"success") == 0){
-    printf("成功取消[id:%d]在[群:%d]管理员身份!\n",atoi(send_data->read_buff),send_data->recv_id);
-    }else if(strcmp(send_data->write_buff,"not host") == 0){
-    printf("您不是群主，没有该权限(或者输入信息有误)！！！\n");
-    }else if(strcmp(send_data->write_buff,"not mem") == 0){
-    printf("ta不是群成员\n");
-    }
-    send_data->recv_id = 0;
-    printf("按任意键继续...\n");
-    getchar();
-    break;
-
-
-    case 17:
-    send_data->type = KICK_MEM;
-    printf("请输入群id:");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    printf("请输入要踢出的群成员id: ");
-    scanf("%s",buf);
-    getchar();
-    if(atoi(buf) == send_data->send_id){
-    printf("你可以选择退群...");
-    getchar();
-    break;
-    }
-    printf("是否保存? 1-yes 2-no\n");
-    scanf("%d",&sure);
-    getchar();
-    if(sure != 1){
-    break;
-    }
-    strcpy(send_data->read_buff,buf);
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co, &cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"success") == 0){
-    printf("成功将[id:%d]踢出[群:%d]!\n",atoi(send_data->read_buff),send_data->recv_id);
-    }else if(strcmp(send_data->write_buff,"not") == 0){
-    printf("对方是管理员，您没有权限(对方不在群)！！！\n");
-    }else if(strcmp(send_data->write_buff,"not power") == 0){
-    printf("您没有权限(对方不在群)\n");
-    }
-    send_data->recv_id = 0;
-    printf("按任意键继续...\n");
-    getchar();
-    break;
-
-    case 18:     //查看已加入的群
-    send_data->type = LOOK_GROUP_LS;
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co, &cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(grp_info_list->number == 0){
-        printf("您还没有加群哦!!!\n");
-    }else{
-    printf("\tgroup_list:\n");
-    for(i = 0;i < grp_info_list->number;i++){
-    printf("\t--[群id:%d][群名称:%s]--",grp_info_list->group_id[i],grp_info_list->group_name[i]);
-    if(grp_info_list->group_state[i] == 2){
-    printf("群主\n");
-    }else if(grp_info_list->group_state[i] == 1){
-    printf("管理员\n");
-    }else{
-    printf("普通成员\n");
-    }
-    }
-    }
-    send_data->recv_id = 0;
-    printf("按任意键继续...\n");
-    getchar();
-    break;
-
-    case 19:            //查看群成员
-    send_data->type = LOOK_GROUP_MEM;
-    printf("请输入你要查看的群id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    printf("是否保存? 1-yes 2-no\n");
-    scanf("%d",&sure);
-    getchar();
-    if(sure != 1){
-    break;
-    }
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-    }
-    pthread_mutex_lock(&cl_mu);
-    pthread_cond_wait(&cl_co, &cl_mu);
-    pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"fail") == 0){
-    printf("您没有进群,无法查看群内信息！");
-    }else if(strcmp(send_data->write_buff,"success") == 0){
-    printf("[群id:%d]:\n",send_data->recv_id);
-    for(i = 0;i < group_mem->group_mem_num;i++){
-    printf("\t--[id:%d][name:%s]--",group_mem->group_mem_id[i],group_mem->group_mem_nickname[i]);
-    if(group_mem->group_mem_state[i] == 2){
-    printf("群主\n");
-    }else if(group_mem->group_mem_state[i] == 1){
-    printf("管理员\n");
-    }else{
-    printf("普通成员\n");
-    }
-    }
-    }
-    send_data->recv_id = 0;
-    printf("按任意键继续...\n");
-    getchar();
-    break;
-
-    case 20: //群聊
-    send_data->type = SEND_GROUP_MSG;
-    printf("请输入你要聊天的群id:");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    printf("是否保存? 1-yes 2-no\n");
-    scanf("%d",&sure);
-    getchar();
-    if(sure != 1){
-    break;
-    }
-    printf("\t--->群[id:%d]<---\n",send_data->recv_id);
-    while(1){
-        bzero(send_data->read_buff,sizeof(send_data->read_buff));
-        fgets(send_data->read_buff,sizeof(send_data->read_buff),stdin);
-        send_data->read_buff[strlen(send_data->read_buff)-1] = '\0';
-    if(strcmp(send_data->read_buff,"#over#") == 0){
-        printf("您已退出群聊...\n");
         break;
-    }
-    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-    }
+
+        case 10: //删除聊天记录
+        send_data->type = DELE_HISTORY;
+        printf("请输入要删除与ta聊天记录的好友id: ");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co,&cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"delete success") == 0){
+            printf("已成功删除!\n");
+        }else{
+            printf("没有与他的聊天记录!\n");
+        }
+        printf("按任意键继续...");
+        getchar();
+        send_data->recv_id = 0;
+        break;
+
+        case 11:  //创建群
+        send_data->type = CREATE_GROUP;
+        bzero(buf,sizeof(buf));
+        printf("请输入你要创建的名称：");
+        scanf("%s",buf);
+        getchar();
+        printf("是否保存? 1-yes 2-no\n");
+        scanf("%d",&sure);
+        getchar();
+        if(sure == 1){
+        strcpy(send_data->recv_name,buf);
+        }else{
+            break;
+        }
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co,&cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"create success") == 0){
+            printf("创建成功!!\n");
+            printf("您的群信息为[id:%d][name:%s]\n",send_data->recv_id,send_data->recv_name);
+        }else{
+            printf("创建失败！！！\n");
+        }
+        printf("按任意键继续...\n");
+        getchar();
+        send_data->recv_id = 0;
+        break;
+
+        case 12: //删除群
+        send_data->type = DISSOLVE_GROUP;
+        printf("请输入要解散的群id: ");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        printf("是否保存? 1-yes 2-no\n");
+        scanf("%d",&sure);
+        getchar();
+        if(sure != 1){
+            break;
+        }
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
         pthread_mutex_lock(&cl_mu);
         pthread_cond_wait(&cl_co, &cl_mu);
         pthread_mutex_unlock(&cl_mu);
-    if(strcmp(send_data->write_buff,"no group") == 0){
-        printf("没有[id:%d]的群...\n",send_data->recv_id);
+        if(strcmp(send_data->write_buff,"dissolve success") == 0){
+            printf("群解散成功!!\n");
+        }else if(strcmp(send_data->write_buff,"no group") == 0){
+            printf("群不存在！！！\n");
+        }else if(strcmp(send_data->write_buff,"no num") == 0){
+            printf("我劝你善良!先加群吧>>\n");
+        }else{
+            printf("您不是群主，没有权限！！！\n");
+        }
+        send_data->recv_id = 0;
+        printf("按任意键继续...\n");
+        getchar();
         break;
-    }else if(strcmp(send_data->write_buff,"") == 0){
-        printf("您已退出[id:%d]的群...\n",send_data->recv_id);
+
+        case 13:   //加群
+        send_data->type = ADD_GROUP;
+        printf("请输入你要加入的群id: ");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        printf("是否保存? 1-yes 2-no\n");
+        scanf("%d",&sure);
+        getchar();
+        if(sure != 1){
         break;
-    }
-    }
+        }
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co, &cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"add success") == 0){
+            printf("成功加入群[id:%d][群名:%s]!\n",send_data->recv_id,send_data->recv_name);
+        }else if(strcmp(send_data->write_buff,"have done") == 0){
+            printf("您已经加入该群！！！\n");
+        }else{
+            printf("该群不存在！！！\n");
+        }
+        send_data->recv_id = 0;
+        printf("按任意键继续...\n");
+        getchar();
+        break;
+
+
+
+        case 14:
+        send_data->type = EXIT_GROUP;
+        printf("请输入你要退出的群id: ");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        printf("是否保存? 1-yes 2-no\n");
+        scanf("%d",&sure);
+        getchar();
+        if(sure != 1){
+        break;
+        }
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co, &cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"exit success") == 0){
+            printf("退群成功!!\n");
+        }else if(strcmp(send_data->write_buff,"no group") == 0){
+            printf("群不存在！！！\n");
+        }else if(strcmp(send_data->write_buff,"no add") == 0){
+            printf("您未在该群内\n");
+        }else if(strcmp(send_data->write_buff,"host exit") == 0){
+            printf("您为该群群主，您已经解散该群\n");
+        }
+        send_data->recv_id = 0;
+        printf("按任意键继续...\n");
+        getchar();
+        break;
+
+        case 15:            //设置管理员
+        send_data->type = SET_ADMIN;
+        bzero(buf, sizeof(buf));
+        printf("请输入群号: ");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        printf("请输入要设置管理员的成员id: ");
+        scanf("%s",buf);
+        getchar();
+        if(atoi(buf) == send_data->send_id){
+            printf("咋这么会玩呢,不可以...");
+            getchar();
+            break;
+        }
+        printf("是否保存? 1-yes 2-no\n");
+        scanf("%d",&sure);
+        getchar();
+        if(sure != 1){
+        break;
+        }
+        strcpy(send_data->read_buff,buf);
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co, &cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"success") == 0){
+            printf("[id:%d]已设置为[群:%d]的管理员!!\n",atoi(send_data->read_buff),send_data->recv_id);
+        }else if(strcmp(send_data->write_buff,"not host") == 0){
+            printf("您不是群主，没有该权限！！！\n");
+        }else if(strcmp(send_data->write_buff,"not mem") == 0){
+            printf("ta不是群成员\n");
+        }
+        send_data->recv_id = 0;
+        printf("按任意键继续...\n");
+        getchar();
+        break;
+
+        case 16:
+        bzero(buf,sizeof(buf));
+        send_data->type = QUIT_ADMIN;
+        printf("请输入群id: ");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        printf("请输入你要取消管理员的id: ");
+        scanf("%s",buf);
+        getchar();
+        if(atoi(buf) == send_data->send_id){
+            printf("咋这么会玩呢,不可以...");
+            getchar();
+            break;
+        }
+        printf("是否保存? 1-yes 2-no\n");
+        scanf("%d",&sure);
+        getchar();
+        if(sure != 1){
+            break;
+        }
+        strcpy(send_data->read_buff,buf);
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co, &cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"success") == 0){
+            printf("成功取消[id:%d]在[群:%d]管理员身份!\n",atoi(send_data->read_buff),send_data->recv_id);
+        }else if(strcmp(send_data->write_buff,"not host") == 0){
+            printf("您不是群主，没有该权限(或者输入信息有误)！！！\n");
+        }else if(strcmp(send_data->write_buff,"not mem") == 0){
+            printf("ta不是群成员\n");
+        }
+        send_data->recv_id = 0;
+        printf("按任意键继续...\n");
+        getchar();
+        break;
+
+
+        case 17:
+        send_data->type = KICK_MEM;
+        printf("请输入群id:");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        printf("请输入要踢出的群成员id: ");
+        scanf("%s",buf);
+        getchar();
+        if(atoi(buf) == send_data->send_id){
+            printf("你可以选择退群...");
+            getchar();
+            break;
+        }
+        printf("是否保存? 1-yes 2-no\n");
+        scanf("%d",&sure);
+        getchar();
+        if(sure != 1){
+            break;
+        }
+        strcpy(send_data->read_buff,buf);
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co, &cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"success") == 0){
+            printf("成功将[id:%d]踢出[群:%d]!\n",atoi(send_data->read_buff),send_data->recv_id);
+        }else if(strcmp(send_data->write_buff,"not") == 0){
+            printf("对方是管理员，您没有权限(对方不在群)！！！\n");
+        }else if(strcmp(send_data->write_buff,"not power") == 0){
+            printf("您没有权限(对方不在群)\n");
+        }
+        send_data->recv_id = 0;
+        printf("按任意键继续...\n");
+        getchar();
+        break;
+
+        case 18:     //查看已加入的群
+        send_data->type = LOOK_GROUP_LS;
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co, &cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(grp_info_list->number == 0){
+            printf("您还没有加群哦!!!\n");
+        }else{
+            printf("\tgroup_list:\n");
+            for(i = 0;i < grp_info_list->number;i++){
+                    printf("\t--[群id:%d][群名称:%s]--",grp_info_list->group_id[i],grp_info_list->group_name[i]);
+                if(grp_info_list->group_state[i] == 2){
+                    printf("群主\n");
+                }else if(grp_info_list->group_state[i] == 1){
+                    printf("管理员\n");
+                }else{
+                    printf("普通成员\n");
+                }
+            }
+        }
+        send_data->recv_id = 0;
+        printf("按任意键继续...\n");
+        getchar();
+        break;
+
+        case 19:            //查看群成员
+        send_data->type = LOOK_GROUP_MEM;
+        printf("请输入你要查看的群id: ");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        printf("是否保存? 1-yes 2-no\n");
+        scanf("%d",&sure);
+        getchar();
+        if(sure != 1){
+            break;
+        }
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co, &cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"fail") == 0){
+            printf("您没有进群,无法查看群内信息！");
+        }else if(strcmp(send_data->write_buff,"success") == 0){
+            printf("[群id:%d]:\n",send_data->recv_id);
+            for(i = 0;i < group_mem->group_mem_num;i++){
+                printf("\t--[id:%d][name:%s]--",group_mem->group_mem_id[i],group_mem->group_mem_nickname[i]);
+                if(group_mem->group_mem_state[i] == 2){
+                    printf("群主\n");
+                }else if(group_mem->group_mem_state[i] == 1){
+                    printf("管理员\n");
+                }else{
+                    printf("普通成员\n");
+                }
+            }
+        }
+        send_data->recv_id = 0;
+        printf("按任意键继续...\n");
+        getchar();
+        break;
+
+        case 20: //群聊
+        send_data->type = SEND_GROUP_MSG;
+        printf("请输入你要聊天的群id:");
+        scanf("%d",&send_data->recv_id);
+        getchar();
+        printf("是否保存? 1-yes 2-no\n");
+        scanf("%d",&sure);
+        getchar();
+        if(sure != 1){
+            break;
+        }
+        printf("\t--->群[id:%d]<---\n",send_data->recv_id);
+        while(1){
+            bzero(send_data->read_buff,sizeof(send_data->read_buff));
+            fgets(send_data->read_buff,sizeof(send_data->read_buff),stdin);
+            send_data->read_buff[strlen(send_data->read_buff)-1] = '\0';
+            if(strcmp(send_data->read_buff,"#over#") == 0){
+                printf("您已退出群聊...\n");
+                break;
+            }
+            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+                pthread_mutex_lock(&cl_mu);
+                pthread_cond_wait(&cl_co, &cl_mu);
+                pthread_mutex_unlock(&cl_mu);
+            if(strcmp(send_data->write_buff,"no group") == 0){
+                printf("没有[id:%d]的群...\n",send_data->recv_id);
+                break;
+            }
+        }
         send_data->recv_id = 0;
         printf("按任意键继续...");
         getchar();
-    break;
+        break;
 
-    case 21:   //查群消息
-    if(box->group_msg_num == 0){
-        printf("没有群消息...\n");
-        printf("按任意键继续...");
-        getchar();
-    }else{
-        for(i = 0;i < box->group_msg_num;i++){
-        printf("<群id:%d>[id:%d][name:%s]说:%s\n",box->group_id[i],box->group_send_id[i],box->group_mem_nikename[i],box->group_message[i]);
+        case 21:   //查群消息
+        if(box->group_msg_num == 0){
+            printf("没有群消息...\n");
+            printf("按任意键继续...");
+            getchar();
+        }else{
+            for(i = 0;i < box->group_msg_num;i++){
+                printf("<群id:%d>[id:%d][name:%s]说:%s\n",box->group_id[i],box->group_send_id[i],box->group_mem_nikename[i],box->group_message[i]);
+            }
+            box->group_msg_num = 0;
+            printf("按任意键继续...");
+            getchar();
         }
-        box->group_msg_num = 0;
-        printf("按任意键继续...");
-        getchar();
-    }
-    break;
+        break;
 
-    case 22:
-    int fp;
-    bzero(buf,sizeof(buf));
-    send_data->type = SEND_FILE;
-    send_data->cont = 0;
-    printf("请输入对方的id: ");
-    scanf("%d",&send_data->recv_id);
-    getchar();
-    printf("请输入你要发送的文件的路径: ");
-    scanf("%s",buf);
-    getchar();
-    printf("是否保存? 1-yes 2-no\n");
-    scanf("%d",&sure);
-    getchar();
-    if(sure != 1){
-    break;
-    }
-    send_data->flag = 1;
-    send_data->mun = -1;
-    bzero(send_data->write_buff,sizeof(send_data->write_buff));
-    if(stat(buf,&buff) != 0){
-        printf("%s\n",strerror(errno));
-        printf("按任意键返回...");
+        case 22:
+        int fp;
+        bzero(buf,sizeof(buf));
+        send_data->type = SEND_FILE;
+        send_data->cont = 0;
+        printf("请输入对方的id: ");
+        scanf("%d",&send_data->recv_id);
         getchar();
-        break;
-    }
-    send_data->filesize = buff.st_size;
-    strcpy(send_data->write_buff,buf);
-    if((fp = open(send_data->write_buff,O_RDONLY)) < 0){
-        printf("%s\n",strerror(errno));
-        printf("按任意键返回...");
+        printf("请输入你要发送的文件的路径: ");
+        scanf("%s",buf);
         getchar();
-        break;
-    }
-        bzero(send_data->read_buff,sizeof(send_data->read_buff));
-        printf("正在发送...");
-        ssize_t l;
-    while(1){
-        if((l = read(fp,send_data->read_buff,sizeof(send_data->read_buff)-1)) < (sizeof(send_data->read_buff)-1)){
-            //如果读到的字节数小于规定的包的大小，将最后一个包的大小存入l
-            send_data->flag = 0;        //文件最后截止的提示
-            send_data->mun = l;         //文件最后的长度
+        printf("是否保存? 1-yes 2-no\n");
+        scanf("%d",&sure);
+        getchar();
+        if(sure != 1){
+            break;
+        }
+        send_data->flag = 1;
+        send_data->mun = -1;
+        bzero(send_data->write_buff,sizeof(send_data->write_buff));
+        if(stat(buf,&buff) != 0){
+            printf("%s\n",strerror(errno));
+            printf("按任意键返回...");
+            getchar();
+            break;
+        }
+        send_data->filesize = buff.st_size;
+        strcpy(send_data->write_buff,buf);
+        if((fp = open(send_data->write_buff,O_RDONLY)) < 0){
+            printf("%s\n",strerror(errno));
+            printf("按任意键返回...");
+            getchar();
+            break;
+        }
+            bzero(send_data->read_buff,sizeof(send_data->read_buff));
+            printf("正在发送...\n");
+            ssize_t l;
+        while(1){
+            if((l = read(fp,send_data->read_buff,sizeof(send_data->read_buff)-1)) < (sizeof(send_data->read_buff)-1)){
+                //如果读到的字节数小于规定的包的大小，将最后一个包的大小存入l
+                send_data->flag = 0;        //文件最后截止的提示
+                send_data->mun = l;         //文件最后的长度
+                if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                    my_err("send",__LINE__);
+                }
+                pthread_mutex_lock(&cl_mu);
+                pthread_cond_wait(&cl_co, &cl_mu);
+                pthread_mutex_unlock(&cl_mu);
+                send_data->cont++;
+                printf("已发送%d个包\n",send_data->cont);
+                break;
+            }
             if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
                 my_err("send",__LINE__);
             }
@@ -958,137 +956,125 @@ void *send_mission(void*arg){
             pthread_mutex_unlock(&cl_mu);
             send_data->cont++;
             printf("已发送%d个包\n",send_data->cont);
-            break;
         }
-        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-            my_err("send",__LINE__);
-        }
-        pthread_mutex_lock(&cl_mu);
-        pthread_cond_wait(&cl_co, &cl_mu);
-        pthread_mutex_unlock(&cl_mu);
-        send_data->cont++;
-        printf("已发送%d个包\n",send_data->cont);
-    }
-    close(fp);
-        printf("已全部发送至服务器!\n");
-        send_data->type = FINSH;
-        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        pthread_mutex_lock(&cl_mu);
-        pthread_cond_wait(&cl_co, &cl_mu);
-        pthread_mutex_unlock(&cl_mu);
-        if(strcmp(send_data->write_buff,"no people") == 0){
-        printf("无效的发送者!!!\n");
-        }
-        else if(strcmp(send_data->write_buff,"outline") == 0){
-        printf("对方不在线，无法收到你的文件!\n");
-        }
-        send_data->recv_id = 0;
-        printf("按任意键继续...");
-        getchar();
-    break;
-
-
-    case 23:
-    if(file_info->num == 0){
-            printf("没有收到文件..\n");
-            printf("按任意键继续...");
-            getchar();
-            break;
-    }
-            printf("[id:%d][name:%s]给你发送了[文件%s大小为%d]!",file_info->send_id,file_info->send_nickname,file_info->filepath,file_info->filesize);
-    while(1){
-            printf("处理方式:[1.接收] [2.拒绝]\n");
-            scanf("%d",&sure);
-            getchar();
-        if(sure == 1){
-            send_data->cont = 0;
-            send_data->recv_id = file_info->send_id;
-            bzero(send_data->write_buff,sizeof(send_data->write_buff));
-            strcpy(send_data->write_buff,file_info->send_nickname);
-        while(1){
-            send_data->type = READ_FILE;
-        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-            printf("开始接收文件...\n");
+        close(fp);
+            printf("已全部发送至服务器!\n");
+            send_data->type = FINSH;
+            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
             pthread_mutex_lock(&cl_mu);
             pthread_cond_wait(&cl_co, &cl_mu);
             pthread_mutex_unlock(&cl_mu);
-            send_data->cont++;
-            printf("已接收%d个包",send_data->cont);
-        if(strcmp(send_data->write_buff,"finish") == 0){
-            printf("文件接收完毕!!");
-            printf("按任意键继续");
+            if(strcmp(send_data->write_buff,"no people") == 0){
+                printf("无效的发送者!!!\n");
+            }
+            else if(strcmp(send_data->write_buff,"outline") == 0){
+                printf("对方不在线，无法收到你的文件!\n");
+            }else if(strcmp(send_data->write_buff,"nice") == 0){
+                printf("已成功发送给对方!!!\n");
+            }
+            send_data->recv_id = 0;
+            printf("按任意键继续...\n");
             getchar();
-            break;
+        break;
+
+
+        case 23:
+        if(file_info->num == 0){
+                printf("没有收到文件..\n");
+                printf("按任意键继续...");
+                getchar();
+                break;
         }
-            getchar();
+                printf("[id:%d][name:%s]给你发送了[文件%s大小为%d]!",file_info->send_id,file_info->send_nickname,file_info->filepath,file_info->filesize);
+        while(1){
+                printf("处理方式:[1.接收] [2.拒绝]\n");
+                scanf("%d",&sure);
+                getchar();
+            if(sure == 1){
+                send_data->cont = 0;
+                send_data->recv_id = file_info->send_id;
+                bzero(send_data->write_buff,sizeof(send_data->write_buff));
+                strcpy(send_data->write_buff,file_info->send_nickname);
+            while(1){
+                send_data->type = READ_FILE;
+            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+            }
+                printf("开始接收文件...\n");
+                pthread_mutex_lock(&cl_mu);
+                pthread_cond_wait(&cl_co, &cl_mu);
+                pthread_mutex_unlock(&cl_mu);
+                send_data->cont++;
+                printf("已接收%d个包",send_data->cont);
+            if(strcmp(send_data->write_buff,"finish") == 0){
+                printf("文件接收完毕!!");
+                printf("按任意键继续");
+                getchar();
+                break;
+            }
+                getchar();
+            }
+            break;
+            }
+            else if(sure == 2){
+                printf("你拒绝了id:%d的文件...\n",file_info->send_id);
+                file_info->num = 0;
+                file_info->filesize = 0;
+                bzero(file_info,sizeof(file_info));
+                printf("按任意键继续");
+                getchar();
+                break;
+            }
+            else{
+                printf("输入无效，请重新输入!");
+                printf("按任意键继续");
+                getchar();
+                continue;
+            }
         }
         break;
-        }
-        else if(sure == 2){
-            printf("你拒绝了id:%d的文件...",file_info->send_id);
-            file_info->num = 0;
-            file_info->filesize = 0;
-            bzero(file_info,sizeof(file_info));
-            printf("按任意键继续");
-            getchar();
-            break;
-        }
-        else{
-            printf("输入无效，请重新输入!");
-            printf("按任意键继续");
-            getchar();
-            continue;
+
+
+        case 24:         //修改密码
+                send_data->type = USER_CHANGE;
+                printf("please input your original passwd: ");
+                i = 0;
+                my_passwd(send_data->read_buff);
+                printf("\n");
+                printf("please input your new passwd: ");
+                i = 0;
+            my_passwd(send_data->write_buff);
+            if((ret = send(connfd,send_data,sizeof(recv_datas),0)) < 0){
+                my_err("send",__LINE__);
+            }
+                pthread_mutex_lock(&cl_mu);
+                pthread_cond_wait(&cl_co,&cl_mu);
+                pthread_mutex_unlock(&cl_mu);
+                printf("%s\n",send_data->write_buff);
+            if(strcmp(send_data->write_buff,"success") == 0){
+                printf("change passwd success!!!\n");
+                printf("按任意键继续...\n");
+                getchar();
+            }else if(strcmp(send_data->write_buff,"error") == 0){
+                printf("original passwd error");
+                printf("按任意键继续...\n");
+                getchar();
+            }
+                bzero(send_data->write_buff,sizeof(send_data->write_buff));
+                bzero(send_data->read_buff,sizeof(send_data->read_buff));
+        break;
+
+        case 0:         //二级界面退出
+            send_data->type = USER_OUT;
+            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+                pthread_exit(0);
+        break;
         }
     }
-    break;
-
-
-    case 24:         //修改密码
-            send_data->type = USER_CHANGE;
-            printf("please input your original passwd: ");
-            i = 0;
-            my_passwd(send_data->read_buff);
-            printf("\n");
-            printf("please input your new passwd: ");
-            i = 0;
-        my_passwd(send_data->write_buff);
-        if((ret = send(connfd,send_data,sizeof(recv_datas),0)) < 0)
-        {
-            my_err("send",__LINE__);
-        }
-            pthread_mutex_lock(&cl_mu);
-            pthread_cond_wait(&cl_co,&cl_mu);
-            pthread_mutex_unlock(&cl_mu);
-            printf("%s\n",send_data->write_buff);
-        if(strcmp(send_data->write_buff,"success") == 0)
-        {
-            printf("change passwd success!!!\n");
-            printf("按任意键继续...\n");
-            getchar();
-        }else if(strcmp(send_data->write_buff,"error") == 0)
-        {
-            printf("original passwd error");
-            printf("按任意键继续...\n");
-            getchar();
-        }
-            bzero(send_data->write_buff,sizeof(send_data->write_buff));
-            bzero(send_data->read_buff,sizeof(send_data->read_buff));
-    break;
-
-    case 0:         //二级界面退出
-        send_data->type = USER_OUT;
-        if(send(connfd,send_data,sizeof(recv_datas),0) < 0)
-        {
-            my_err("send",__LINE__);
-        }
-            pthread_exit(0);
-    break;
-}
-}
 }
 
 
@@ -1148,20 +1134,18 @@ void *recv_group_msg(void * connfd){
         box->group_send_id[box->group_msg_num] = recv_data->send_id;         //发消息的id
         strcpy(box->group_mem_nikename[box->group_msg_num],recv_data->send_name);
         box->group_id[box->group_msg_num++] = recv_data->recv_id;
-        printf("您收到一条群消息\n");
+        printf("您收到一条来自[群id:%d]的消息\n",recv_data->recv_id);
+        recv_data->send_id = 0;
     }
     pthread_exit(0);
 }
 
 void *recv_file(void*connfd){
-    pthread_mutex_lock(&cl_mu);
     file_info->num = 1;
     file_info->send_id = recv_data->send_id;
     file_info->filesize = recv_data->filesize;
     strcpy(file_info->filepath,recv_data->write_buff);
     strcpy(file_info->send_nickname,recv_data->send_name);
-    //printf("[id:%d][name:%s]给你发送了文件%s!",file_info->send_id,file_info->send_nickname,file_info->filepath);
-    pthread_mutex_unlock(&cl_mu);
     pthread_exit(0);
 }
 
@@ -1422,16 +1406,11 @@ void *recv_mission(void*arg){
             pthread_mutex_unlock(&cl_mu);
             break;
 
-            case FINSH:
-            printf("已发送给对方...\n");
-            pthread_mutex_lock(&cl_mu);
-            pthread_cond_signal(&cl_co);
-            pthread_mutex_unlock(&cl_mu);
-            break;
 
             case RECV_FILE:
             pthread_create(&tid,NULL,recv_file,arg);
             pthread_join(tid, NULL);
+            printf("你收到了一份文件!\n");
             break;
 
             case READ_FILE:
@@ -1445,8 +1424,8 @@ void *recv_mission(void*arg){
                 write(fp,recv_data->read_buff,recv_data->mun);
                 close(fp);
             }else{
-            write(fp,recv_data->read_buff,sizeof(recv_data->read_buff)-1);
-            close(fp);
+                write(fp,recv_data->read_buff,sizeof(recv_data->read_buff)-1);
+                close(fp);
             }
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);

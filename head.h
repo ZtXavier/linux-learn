@@ -87,10 +87,10 @@ typedef struct friends{
 }FRIENDS;
 
 typedef struct file{
-    char       filepath[50];
+    char       send_nickname[50];
     int        num;
     int        send_id;
-    char       send_nickname[50];
+    char       filepath[50];
     int        filesize;
 }FILE_INFO;
 

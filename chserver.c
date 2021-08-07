@@ -98,8 +98,8 @@ threadpool * threadPoolcreate(int max,int min,int queuesize){
 
     if(pthread_mutex_init(&pool->pool_mutex,NULL) != 0 ||
     pthread_mutex_init(&pool->busy_mutex,NULL) != 0 ||
-    pthread_cond_init(&pool->notEmpty,NULL) != 0 || 
-    pthread_cond_init(&pool->notFull,NULL) != 0){  
+    pthread_cond_init(&pool->notEmpty,NULL) != 0 ||
+    pthread_cond_init(&pool->notFull,NULL) != 0){
     //初始化成功返回0
 
     printf("pthread_init failed\n");
@@ -350,27 +350,6 @@ int threaddestroy(threadpool *pool){
 
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void my_err(const char *err_string, int line)
 {
@@ -749,390 +728,390 @@ int send_info(recv_datas *mybag,MYSQL mysql){
 }
 
 void look_list(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES    *res = NULL;
-MYSQL_RES    *resl = NULL;
-MYSQL_ROW     row;
-MYSQL_ROW     rows;
-recv_datas   *recv_data = mybag;
-FRIENDS      *list;
-char          sql[MYSQL_MAX];
-list = (FRIENDS*)malloc(sizeof(FRIENDS));
-list->friend_num = 0;
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from friends where your_id = \'%d\';",recv_data->send_id);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-while(row = mysql_fetch_row(res)){
-list->friend_id[list->friend_num] = atoi(row[1]);
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from person where id = \'%d\';",atoi(row[1]));
-ret = mysql_query(&mysql,sql);
-resl = mysql_store_result(&mysql);
-rows = mysql_fetch_row(resl);
-list->friend_state[list->friend_num] = atoi(rows[3]);
-strcpy(list->friend_nickname[list->friend_num++],rows[1]);
-}
-if(list->friend_num == 0){
-bzero(recv_data->write_buff,sizeof(recv_data->write_buff));
-strcpy(recv_data->write_buff,"bad");
-if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
-my_err("send",__LINE__);
-}
-if(send(recv_data->recvfd,list,sizeof(FRIENDS),0) < 0){
-my_err("send",__LINE__);
-}
-}else{
-bzero(recv_data->write_buff,sizeof(recv_data->write_buff));
-strcpy(recv_data->write_buff,"nice");
-if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
-my_err("send",__LINE__);
-}
-if(send(recv_data->recvfd,list,sizeof(FRIENDS),0) < 0){
-my_err("send",__LINE__);
-}
-}
+    MYSQL_RES    *res = NULL;
+    MYSQL_RES    *resl = NULL;
+    MYSQL_ROW     row;
+    MYSQL_ROW     rows;
+    recv_datas   *recv_data = mybag;
+    FRIENDS      *list;
+    char          sql[MYSQL_MAX];
+    list = (FRIENDS*)malloc(sizeof(FRIENDS));
+    list->friend_num = 0;
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from friends where your_id = \'%d\';",recv_data->send_id);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    while(row = mysql_fetch_row(res)){
+        list->friend_id[list->friend_num] = atoi(row[1]);
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from person where id = \'%d\';",atoi(row[1]));
+        ret = mysql_query(&mysql,sql);
+        resl = mysql_store_result(&mysql);
+        rows = mysql_fetch_row(resl);
+        list->friend_state[list->friend_num] = atoi(rows[3]);
+        strcpy(list->friend_nickname[list->friend_num++],rows[1]);
+        }
+    if(list->friend_num == 0){
+        bzero(recv_data->write_buff,sizeof(recv_data->write_buff));
+        strcpy(recv_data->write_buff,"bad");
+        if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        if(send(recv_data->recvfd,list,sizeof(FRIENDS),0) < 0){
+            my_err("send",__LINE__);
+        }
+    }else{
+        bzero(recv_data->write_buff,sizeof(recv_data->write_buff));
+        strcpy(recv_data->write_buff,"nice");
+        if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        if(send(recv_data->recvfd,list,sizeof(FRIENDS),0) < 0){
+        my_err("send",__LINE__);
+        }
+    }
 }
 
 int look_history(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES *res = NULL;
-MYSQL_ROW  row;
-recv_datas *recv_data = mybag;
-MSG        *his_msg;
-char        sql[MYSQL_MAX];
-his_msg = (MSG*)malloc(sizeof(MSG));
-his_msg->num = 0;
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from massage where your_id = \'%d\' and recv_id = \'%d\' and y_look = \'1\' union all select * from massage where your_id = \'%d\' and recv_id = \'%d\' and recv_look = \'1\';",recv_data->send_id,recv_data->recv_id,recv_data->recv_id,recv_data->send_id);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-while((row = mysql_fetch_row(res))){
-his_msg->send_id[his_msg->num] = atoi(row[0]);
-his_msg->recv_id[his_msg->num] = atoi(row[1]);
-strcpy(his_msg->message[his_msg->num++],row[2]);
-}
-if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
-    my_err("send",__LINE__);
-}
-if(send(recv_data->recvfd,his_msg,sizeof(MSG),0) < 0){
-    my_err("send",__LINE__);
-}
-return 1;
+    MYSQL_RES *res = NULL;
+    MYSQL_ROW  row;
+    recv_datas *recv_data = mybag;
+    MSG        *his_msg;
+    char        sql[MYSQL_MAX];
+    his_msg = (MSG*)malloc(sizeof(MSG));
+    his_msg->num = 0;
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from massage where your_id = \'%d\' and recv_id = \'%d\' and y_look = \'1\' union all select * from massage where your_id = \'%d\' and recv_id = \'%d\' and recv_look = \'1\';",recv_data->send_id,recv_data->recv_id,recv_data->recv_id,recv_data->send_id);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    while((row = mysql_fetch_row(res))){
+        his_msg->send_id[his_msg->num] = atoi(row[0]);
+        his_msg->recv_id[his_msg->num] = atoi(row[1]);
+        strcpy(his_msg->message[his_msg->num++],row[2]);
+    }
+    if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+        my_err("send",__LINE__);
+    }
+    if(send(recv_data->recvfd,his_msg,sizeof(MSG),0) < 0){
+        my_err("send",__LINE__);
+    }
+    return 1;
 }
 
 int dele_history(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES  *res = NULL;
-MYSQL_ROW   row;
-recv_datas *recv_data = mybag;
-char        sql[MYSQL_MAX];
+    MYSQL_RES  *res = NULL;
+    MYSQL_ROW   row;
+    recv_datas *recv_data = mybag;
+    char        sql[MYSQL_MAX];
 
-bzero(sql,sizeof(sql));
-sprintf(sql,"update massage set y_look = \'0\' where your_id = \'%d\' and recv_id = \'%d\';",recv_data->send_id,recv_data->recv_id);
-int ret = mysql_query(&mysql,sql);
-bzero(sql,sizeof(sql));
-sprintf(sql,"update massage set recv_look = \'0\' where recv_id = \'%d\' and your_id = \'%d\';",recv_data->send_id,recv_data->recv_id);
-ret = mysql_query(&mysql,sql);
-bzero(sql,sizeof(sql));
-sprintf(sql,"delete from massage where y_look = \'0\' and recv_look = \'0\';");
-ret = mysql_query(&mysql,sql);
-return 0;
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"update massage set y_look = \'0\' where your_id = \'%d\' and recv_id = \'%d\';",recv_data->send_id,recv_data->recv_id);
+    int ret = mysql_query(&mysql,sql);
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"update massage set recv_look = \'0\' where recv_id = \'%d\' and your_id = \'%d\';",recv_data->send_id,recv_data->recv_id);
+    ret = mysql_query(&mysql,sql);
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"delete from massage where y_look = \'0\' and recv_look = \'0\';");
+    ret = mysql_query(&mysql,sql);
+    return 0;
 }
 
 int create_group(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES   *res = NULL;
-MYSQL_ROW    row;
-recv_datas  *recv_data = mybag;
-char         sql[MYSQL_MAX];
-FILE        *fp;
-int          num;
-bzero(sql,sizeof(sql));
-if((fp = fopen("group.txt","r")) == NULL){
-printf("Error opening");
-return 0;
-}
-fread(&num, sizeof(int), 1, fp);
-fclose(fp);
-sprintf(sql,"insert into groups_info values(\'%d\',\'%s\',\'1\');",num,recv_data->recv_name);
-int ret = mysql_query(&mysql,sql);
-bzero(sql,sizeof(sql));
-sprintf(sql,"insert into groups values(\'%d\',\'%s\',\'%d\',\'%s\',\'2\');",num,recv_data->recv_name,recv_data->send_id,recv_data->send_name);
-ret = mysql_query(&mysql,sql);
-recv_data->recv_id = num;
-num -= 1;
-if((fp = fopen("group.txt","w")) == NULL){
-printf("Error opening");
-return 0;
-}
-fwrite(&num, sizeof(int), 1, fp);
-fclose(fp);
-return 1;
-}
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW    row;
+    recv_datas  *recv_data = mybag;
+    char         sql[MYSQL_MAX];
+    FILE        *fp;
+    int          num;
+    bzero(sql,sizeof(sql));
+    if((fp = fopen("group.txt","r")) == NULL){
+        printf("Error opening");
+        return 0;
+    }
+    fread(&num, sizeof(int), 1, fp);
+    fclose(fp);
+    sprintf(sql,"insert into groups_info values(\'%d\',\'%s\',\'1\');",num,recv_data->recv_name);
+    int ret = mysql_query(&mysql,sql);
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"insert into groups values(\'%d\',\'%s\',\'%d\',\'%s\',\'2\');",num,recv_data->recv_name,recv_data->send_id,recv_data->send_name);
+    ret = mysql_query(&mysql,sql);
+    recv_data->recv_id = num;
+    num -= 1;
+    if((fp = fopen("group.txt","w")) == NULL){
+        printf("Error opening");
+        return 0;
+    }
+    fwrite(&num, sizeof(int), 1, fp);
+    fclose(fp);
+    return 1;
+    }
 
 int dissolve_group(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES  *res = NULL;
-MYSQL_RES  *resl = NULL;
-MYSQL_ROW   row,row_info;
-recv_datas *recv_data = mybag;
-char        sql[MYSQL_MAX];
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
-pthread_mutex_lock(&mutex);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL){             //没有此群
-pthread_mutex_unlock(&mutex);
-return 0;
-}else{
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups where group_id  = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
-ret = mysql_query(&mysql,sql);
-resl = mysql_store_result(&mysql);
-row_info = mysql_fetch_row(resl);
-if(row_info == NULL){
-pthread_mutex_unlock(&mutex);
-return -2;
-}
-if(atoi(row_info[4]) == 2){
-bzero(sql,sizeof(sql));
-sprintf(sql,"delete from groups where group_id = \'%d\';",recv_data->recv_id);
-ret = mysql_query(&mysql,sql);
-bzero(sql,sizeof(sql));
-sprintf(sql,"delete from groups_info where group_id = \'%d\';",recv_data->recv_id);
-ret = mysql_query(&mysql,sql);
-pthread_mutex_unlock(&mutex);
-return 1;
-}else{
-pthread_mutex_unlock(&mutex);
-return -1;                       //不是群主没有权限    （群主：2,管理员：1，成员：0）
-}
-}
+    MYSQL_RES  *res = NULL;
+    MYSQL_RES  *resl = NULL;
+    MYSQL_ROW   row,row_info;
+    recv_datas *recv_data = mybag;
+    char        sql[MYSQL_MAX];
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
+    pthread_mutex_lock(&mutex);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){             //没有此群
+        pthread_mutex_unlock(&mutex);
+        return 0;
+    }else{
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from groups where group_id  = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
+        ret = mysql_query(&mysql,sql);
+        resl = mysql_store_result(&mysql);
+        row_info = mysql_fetch_row(resl);
+        if(row_info == NULL){
+            pthread_mutex_unlock(&mutex);
+            return -2;
+        }
+        if(atoi(row_info[4]) == 2){
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"delete from groups where group_id = \'%d\';",recv_data->recv_id);
+            ret = mysql_query(&mysql,sql);
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"delete from groups_info where group_id = \'%d\';",recv_data->recv_id);
+            ret = mysql_query(&mysql,sql);
+            pthread_mutex_unlock(&mutex);
+            return 1;
+        }else{
+            pthread_mutex_unlock(&mutex);
+            return -1;                       //不是群主没有权限    （群主：2,管理员：1，成员：0）
+        }
+    }
 }
 
 int add_group(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES   *res = NULL;
-MYSQL_ROW    row;
-recv_datas  *recv_data = mybag;
-char         sql[MYSQL_MAX];
-int          mem_num;
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW    row;
+    recv_datas  *recv_data = mybag;
+    char         sql[MYSQL_MAX];
+    int          mem_num;
 
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
-pthread_mutex_lock(&mutex);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL){                //没有该群
-    pthread_mutex_unlock(&mutex);
-    return 0;
-}
-strcpy(recv_data->recv_name,row[1]);
-mem_num = atoi(row[2]);
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
-ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row != NULL){
-    pthread_mutex_unlock(&mutex);
-    return -1;
-}else{
-bzero(sql,sizeof(sql));
-sprintf(sql,"insert into groups values(\'%d\',\'%s\',\'%d\',\'%s\',\'0\');",recv_data->recv_id,recv_data->recv_name,recv_data->send_id,recv_data->send_name);
-ret = mysql_query(&mysql,sql);
-pthread_mutex_unlock(&mutex);
-bzero(sql,sizeof(sql));
-//mem_num += 1;
-sprintf(sql,"update groups_info set group_mem_num = \'%d\' where group_id = \'%d\';",++mem_num,recv_data->recv_id);
-ret = mysql_query(&mysql,sql);
-pthread_mutex_unlock(&mutex);
-return 1;
-}
-}
-
-int exit_group(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES   *res = NULL;
-MYSQL_ROW    row;
-recv_datas  *recv_data = mybag;
-char         sql[MYSQL_MAX];
-int           mem_num;
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
-pthread_mutex_lock(&mutex);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL){              //没有该群
-    pthread_mutex_unlock(&mutex);
-    return 2;
-}else{
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
+    pthread_mutex_lock(&mutex);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){                //没有该群
+        pthread_mutex_unlock(&mutex);
+        return 0;
+    }
+    strcpy(recv_data->recv_name,row[1]);
     mem_num = atoi(row[2]);
     bzero(sql,sizeof(sql));
     sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
     ret = mysql_query(&mysql,sql);
     res = mysql_store_result(&mysql);
     row = mysql_fetch_row(res);
-    if(row == NULL){               //不再该群内
-    pthread_mutex_unlock(&mutex);
-    return 0;
-    }if(atoi(row[4]) == 2){
-    bzero(sql,sizeof(sql));
-    sprintf(sql,"delete from groups_info where group_id  = \'%d\';",recv_data->recv_id);
-    ret = mysql_query(&mysql,sql);
-    bzero(sql,sizeof(sql));
-    sprintf(sql,"delete from groups where group_id  = \'%d\';",recv_data->recv_id);
-    ret = mysql_query(&mysql,sql);
-    pthread_mutex_unlock(&mutex);
-    return -1;                       //群主退出返回不对
+    if(row != NULL){
+        pthread_mutex_unlock(&mutex);
+        return -1;
     }else{
-    bzero(sql,sizeof(sql));
-    sprintf(sql,"delete from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
-    ret = mysql_query(&mysql,sql);
-    bzero(sql,sizeof(sql));
-    sprintf(sql,"update groups_info set group_mem_num = \'%d\' and group_id = \'%d\';",--mem_num,recv_data->recv_id);
-    ret = mysql_query(&mysql,sql);
-    pthread_mutex_unlock(&mutex);
-    return 1;
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"insert into groups values(\'%d\',\'%s\',\'%d\',\'%s\',\'0\');",recv_data->recv_id,recv_data->recv_name,recv_data->send_id,recv_data->send_name);
+        ret = mysql_query(&mysql,sql);
+        pthread_mutex_unlock(&mutex);
+        bzero(sql,sizeof(sql));
+        //mem_num += 1;
+        sprintf(sql,"update groups_info set group_mem_num = \'%d\' where group_id = \'%d\';",++mem_num,recv_data->recv_id);
+        ret = mysql_query(&mysql,sql);
+        pthread_mutex_unlock(&mutex);
+        return 1;
     }
 }
+
+int exit_group(recv_datas *mybag,MYSQL mysql){
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW    row;
+    recv_datas  *recv_data = mybag;
+    char         sql[MYSQL_MAX];
+    int           mem_num;
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
+    pthread_mutex_lock(&mutex);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){              //没有该群
+        pthread_mutex_unlock(&mutex);
+        return 2;
+    }else{
+        mem_num = atoi(row[2]);
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
+        ret = mysql_query(&mysql,sql);
+        res = mysql_store_result(&mysql);
+        row = mysql_fetch_row(res);
+        if(row == NULL){               //不再该群内
+            pthread_mutex_unlock(&mutex);
+            return 0;
+        }if(atoi(row[4]) == 2){
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"delete from groups_info where group_id  = \'%d\';",recv_data->recv_id);
+            ret = mysql_query(&mysql,sql);
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"delete from groups where group_id  = \'%d\';",recv_data->recv_id);
+            ret = mysql_query(&mysql,sql);
+            pthread_mutex_unlock(&mutex);
+            return -1;                       //群主退出返回不对
+        }else{
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"delete from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
+            ret = mysql_query(&mysql,sql);
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"update groups_info set group_mem_num = \'%d\' and group_id = \'%d\';",--mem_num,recv_data->recv_id);
+            ret = mysql_query(&mysql,sql);
+            pthread_mutex_unlock(&mutex);
+            return 1;
+        }
+    }
 }
 
 int set_admin(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES   *res = NULL;
-MYSQL_ROW    row;
-recv_datas  *recv_data = mybag;
-char         sql[MYSQL_MAX];
-int          idnum;
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW    row;
+    recv_datas  *recv_data = mybag;
+    char         sql[MYSQL_MAX];
+    int          idnum;
 
-idnum = atoi(recv_data->read_buff);
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\' and group_state = \'2\';",recv_data->recv_id,recv_data->send_id);
-pthread_mutex_lock(&mutex);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL){             //不是群主
-pthread_mutex_unlock(&mutex);
-return -1;
-}else{
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
-ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL){            //没有该成员
-pthread_mutex_unlock(&mutex);
-return 0;
-}
-bzero(sql,sizeof(sql));
-sprintf(sql,"update groups set group_state = \'1\' where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
-ret = mysql_query(&mysql,sql);
-pthread_mutex_unlock(&mutex);
-return 1;                    //成功设置
-}
+    idnum = atoi(recv_data->read_buff);
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\' and group_state = \'2\';",recv_data->recv_id,recv_data->send_id);
+    pthread_mutex_lock(&mutex);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){             //不是群主
+        pthread_mutex_unlock(&mutex);
+        return -1;
+    }else{
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
+        ret = mysql_query(&mysql,sql);
+        res = mysql_store_result(&mysql);
+        row = mysql_fetch_row(res);
+        if(row == NULL){            //没有该成员
+            pthread_mutex_unlock(&mutex);
+            return 0;
+        }
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"update groups set group_state = \'1\' where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
+        ret = mysql_query(&mysql,sql);
+        pthread_mutex_unlock(&mutex);
+        return 1;                    //成功设置
+    }
 }
 
 int quit_admin(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES   *res = NULL;
-MYSQL_ROW    row;
-recv_datas  *recv_data = mybag;
-char         sql[MYSQL_MAX];
-int          idnum;
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW    row;
+    recv_datas  *recv_data = mybag;
+    char         sql[MYSQL_MAX];
+    int          idnum;
 
-idnum = atoi(recv_data->read_buff);
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\' and group_state = \'2\';",recv_data->recv_id,recv_data->send_id);
-pthread_mutex_lock(&mutex);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL){                     //自己若不是群主
-pthread_mutex_unlock(&mutex);
-return -1;
-}else{
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
-ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL){                  //对方没加群
-pthread_mutex_unlock(&mutex);
-return 0;
-}else{
-bzero(sql,sizeof(sql));
-sprintf(sql,"update groups set group_state = \'0\' where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
-ret = mysql_query(&mysql,sql);
-pthread_mutex_unlock(&mutex);
-return 1;
-}
-}
+    idnum = atoi(recv_data->read_buff);
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\' and group_state = \'2\';",recv_data->recv_id,recv_data->send_id);
+    pthread_mutex_lock(&mutex);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){                     //自己若不是群主
+        pthread_mutex_unlock(&mutex);
+        return -1;
+    }else{
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
+        ret = mysql_query(&mysql,sql);
+        res = mysql_store_result(&mysql);
+        row = mysql_fetch_row(res);
+        if(row == NULL){                  //对方没加群
+            pthread_mutex_unlock(&mutex);
+            return 0;
+        }else{
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"update groups set group_state = \'0\' where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
+            ret = mysql_query(&mysql,sql);
+            pthread_mutex_unlock(&mutex);
+            return 1;
+        }
+    }
 }
 
 int kick_mem(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES   *res = NULL;
-MYSQL_ROW    row;
-recv_datas  *recv_data = mybag;
-char         sql[MYSQL_MAX];
-int          idnum;
-int           mem_num;
-idnum = atoi(recv_data->read_buff);
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
-pthread_mutex_lock(&mutex);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL || atoi(row[4]) == 0){                     //自己若不是群主
-pthread_mutex_unlock(&mutex);
-return -1;
-}else if(atoi(row[4]) == 2){
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
-ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL){
-pthread_mutex_unlock(&mutex);
-return 0;
-}
-bzero(sql,sizeof(sql));
-sprintf(sql,"delete from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
-ret = mysql_query(&mysql,sql);
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
-ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-mem_num = atoi(row[2]);
-bzero(sql,sizeof(sql));
-sprintf(sql,"update groups_info set group_mem_num = \'%d\' where group_id = \'%d\';",--mem_num,recv_data->recv_id);
-ret = mysql_query(&mysql,sql);
-pthread_mutex_unlock(&mutex);
-return 1;
-}else if(atoi(row[4]) == 1){
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL || (atoi(row[4]) >= 1)){
-pthread_mutex_unlock(&mutex);
-return 0;
-}
-bzero(sql,sizeof(sql));
-sprintf(sql,"delete from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
-ret = mysql_query(&mysql,sql);
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
-ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-mem_num = atoi(row[2]);
-bzero(sql,sizeof(sql));
-sprintf(sql,"update groups_info set group_mem_num = \'%d\' where group_id = \'%d\';",--mem_num,recv_data->recv_id);
-ret = mysql_query(&mysql,sql);
-pthread_mutex_unlock(&mutex);
-return 1;
-}
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW    row;
+    recv_datas  *recv_data = mybag;
+    char         sql[MYSQL_MAX];
+    int          idnum;
+    int           mem_num;
+    idnum = atoi(recv_data->read_buff);
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
+    pthread_mutex_lock(&mutex);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL || atoi(row[4]) == 0){                     //自己若不是群主
+        pthread_mutex_unlock(&mutex);
+        return -1;
+    }else if(atoi(row[4]) == 2){
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
+        ret = mysql_query(&mysql,sql);
+        res = mysql_store_result(&mysql);
+        row = mysql_fetch_row(res);
+    if(row == NULL){
+        pthread_mutex_unlock(&mutex);
+        return 0;
+    }
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"delete from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
+        ret = mysql_query(&mysql,sql);
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
+        ret = mysql_query(&mysql,sql);
+        res = mysql_store_result(&mysql);
+        row = mysql_fetch_row(res);
+        mem_num = atoi(row[2]);
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"update groups_info set group_mem_num = \'%d\' where group_id = \'%d\';",--mem_num,recv_data->recv_id);
+        ret = mysql_query(&mysql,sql);
+        pthread_mutex_unlock(&mutex);
+        return 1;
+    }else if(atoi(row[4]) == 1){
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
+        int ret = mysql_query(&mysql,sql);
+        res = mysql_store_result(&mysql);
+        row = mysql_fetch_row(res);
+        if(row == NULL || (atoi(row[4]) >= 1)){
+            pthread_mutex_unlock(&mutex);
+            return 0;
+        }
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"delete from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,idnum);
+        ret = mysql_query(&mysql,sql);
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from groups_info where group_id = \'%d\';",recv_data->recv_id);
+        ret = mysql_query(&mysql,sql);
+        res = mysql_store_result(&mysql);
+        row = mysql_fetch_row(res);
+        mem_num = atoi(row[2]);
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"update groups_info set group_mem_num = \'%d\' where group_id = \'%d\';",--mem_num,recv_data->recv_id);
+        ret = mysql_query(&mysql,sql);
+        pthread_mutex_unlock(&mutex);
+        return 1;
+    }
 }
 
 void look_group_ls(recv_datas *mybag,MYSQL mysql){
@@ -1233,9 +1212,9 @@ int send_group_msg(recv_datas *mybag,MYSQL mysql){
         res = mysql_store_result(&mysql);
         row = mysql_fetch_row(res);
         if(row == NULL){
-        recv_data->type = SEND_GROUP_MSG;
-        pthread_mutex_unlock(&mutex);
-        return -1;
+            recv_data->type = SEND_GROUP_MSG;
+            pthread_mutex_unlock(&mutex);
+            return -1;
         }
         bzero(sql,sizeof(sql));
         sprintf(sql,"select * from groups where group_id = \'%d\';",recv_data->recv_id);
@@ -1292,32 +1271,29 @@ return 0;
 }
 
 int finsh(recv_datas *mybag,MYSQL mysql){
-MYSQL_RES   *res = NULL;
-MYSQL_ROW    row;
-recv_datas  *recv_data = mybag;
-char         sql[MYSQL_MAX];
-bzero(sql,sizeof(sql));
-sprintf(sql,"select * from person where id = \'%d\';",recv_data->recv_id);
-int ret = mysql_query(&mysql,sql);
-res = mysql_store_result(&mysql);
-row = mysql_fetch_row(res);
-if(row == NULL){
-return -1;
-}else{
-if(atoi(row[3]) == 0){
-return 0;
-}else{
-recv_data->sendfd = atoi(row[4]);
-recv_data->type = RECV_FILE;
-if(send(recv_data->sendfd,recv_data,sizeof(recv_datas),0) < 0){
-my_err("send",__LINE__);
-}
-recv_data->type = FINSH;
-if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
-my_err("send",__LINE__);
-}
-}
-}
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW    row;
+    recv_datas  *recv_data = mybag;
+    char         sql[MYSQL_MAX];
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from person where id = \'%d\';",recv_data->recv_id);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){
+        return -1;
+    }else{
+        if(atoi(row[3]) == 1){
+            recv_data->sendfd = atoi(row[4]);
+            recv_data->type = RECV_FILE;
+            if(send(recv_data->sendfd,recv_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+            return 1;
+        }else{
+            return 0;
+        }
+    }
 }
 
 int send_file(recv_datas *mybag,MYSQL mysql){
@@ -1367,6 +1343,7 @@ void *ser_deal(void *arg){
     printf("进入函数选择任务类型\n");
     int i;
     int fp;
+    int ret;
     MYSQL mysql;
     list_box  box = head;
     recv_datas *recv_buf = (recv_datas*)arg;
@@ -1379,11 +1356,11 @@ void *ser_deal(void *arg){
             bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
             strcpy(recv_buf->write_buff,"id error");
             if (send(recv_buf->recvfd,recv_buf,sizeof(recv_datas), 0) < 0) {
-                my_err("send", __LINE__);
+            my_err("send", __LINE__);
             }
         }else{
             bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-            strcpy(recv_buf->write_buff,"id success");
+            strcpy(recv_buf->write_buff,"login success");
             if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
                 my_err("send",__LINE__);
             }
@@ -1446,25 +1423,25 @@ void *ser_deal(void *arg){
         strcpy(recv_buf->write_buff,"success");
         }
         if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
+            my_err("send",__LINE__);
         }
         break;
 
         case ADD_FRIEND:
         if(add_friend(recv_buf,mysql)){
-        recv_buf->type = ADD_FRIEND;
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"ok");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            recv_buf->type = ADD_FRIEND;
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"ok");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }else{
         recv_buf->type = ADD_FRIEND;
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"no");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"no");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         break;
 
@@ -1477,38 +1454,38 @@ void *ser_deal(void *arg){
         case DEL_FRIEND:
         del_friend(recv_buf,mysql);
         if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
+            my_err("send",__LINE__);
         }
         break;
 
         case BLACK_LIST:
         black_list(recv_buf,mysql);
         if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
+            my_err("send",__LINE__);
         }
         break;
 
         case QUIT_BLACK:
         quit_black(recv_buf,mysql);
         if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
+            my_err("send",__LINE__);
         }
         break;
 
         case SEND_INFO:
         pthread_mutex_lock(&mutex);
         if(send_info(recv_buf,mysql)){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"send ok");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"send ok");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }else{
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"send fail");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"send fail");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         pthread_mutex_unlock(&mutex);
         break;
@@ -1528,180 +1505,186 @@ void *ser_deal(void *arg){
         case DELE_HISTORY:
         pthread_mutex_lock(&mutex);
         if(dele_history(recv_buf,mysql) == 0){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"delete success");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"delete success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }else{
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"delete fail");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"delete fail");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         pthread_mutex_unlock(&mutex);
         break;
 
         case CREATE_GROUP:  //建群
         if(create_group(recv_buf,mysql)){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"create success");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"create success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }else{
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"create fail");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"create fail");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         break;
 
 
         case DISSOLVE_GROUP: //解散群
-        if(dissolve_group(recv_buf,mysql) == 1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"dissolve success");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(dissolve_group(recv_buf,mysql) == 0){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"no group");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(dissolve_group(recv_buf,mysql) == -2){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"no num");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+        ret = dissolve_group(recv_buf,mysql);
+        if(ret == 1){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"dissolve success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == 0){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"no group");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == -2){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"no num");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }else{
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"no host");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"no host");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+            }
         break;
 
 
         case ADD_GROUP:
-        if(add_group(recv_buf,mysql) == 1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"add success");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(add_group(recv_buf,mysql) == -1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"have done");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+        ret = add_group(recv_buf,mysql);
+        if(ret == 1){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"add success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == -1){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"have done");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }else{
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"error");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"error");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         break;
 
         case EXIT_GROUP:
-        if(exit_group(recv_buf,mysql) == 1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"exit success");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(exit_group(recv_buf,mysql) == -1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"host exit");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(exit_group(recv_buf,mysql) == 2){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"no group");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+        ret = exit_group(recv_buf,mysql);
+        if(ret == 1){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"exit success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == -1){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"host exit");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == 2){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"no group");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }else{
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"no add");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"no add");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         break;
 
         case SET_ADMIN:
-        if(set_admin(recv_buf,mysql) == 1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"success");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(set_admin(recv_buf,mysql) == -1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"not host");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(set_admin(recv_buf,mysql) == 0){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"not mem");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+        ret = set_admin(recv_buf,mysql);
+        if(ret == 1){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == -1){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"not host");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == 0){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"not mem");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         break;
 
         case QUIT_ADMIN:
-        if(quit_admin(recv_buf,mysql) == 1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"success");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(quit_admin(recv_buf,mysql) == 0){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"not mem");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(quit_admin(recv_buf,mysql) == -1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"not host");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+        ret = quit_admin(recv_buf,mysql);
+        if(ret == 1){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == 0){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"not mem");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == -1){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"not host");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         break;
 
         case KICK_MEM:
-        if(kick_mem(recv_buf,mysql) == 1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"success");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(kick_mem(recv_buf,mysql) == 0){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"not");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(kick_mem(recv_buf,mysql) == -1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"not power");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+        ret = kick_mem(recv_buf,mysql);
+        if(ret == 1){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == 0){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"not");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == -1){
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"not power");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         break;
 
@@ -1719,17 +1702,17 @@ void *ser_deal(void *arg){
 
         case SEND_GROUP_MSG:
         if(send_group_msg(recv_buf,mysql) == -1){
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"no group");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"no group");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }else{
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"success");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"success");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         break;
 
@@ -1742,20 +1725,28 @@ void *ser_deal(void *arg){
 
         case FINSH:
         pthread_mutex_lock(&mutex);
-        if(finsh(recv_buf,mysql) == -1){
-        recv_buf->type = SEND_FILE;
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"no people");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        }else if(finsh(recv_buf,mysql) == 0){
-        recv_buf->type = SEND_FILE;
-        bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-        strcpy(recv_buf->write_buff,"outline");
-        if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
+        ret = finsh(recv_buf,mysql);
+        if(ret < 0){
+            recv_buf->type = SEND_FILE;
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"no people");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else if(ret == 0){
+            recv_buf->type = SEND_FILE;
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"outline");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else{
+           recv_buf->type = SEND_FILE;
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"nice");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
         }
         pthread_mutex_unlock(&mutex);
         break;
@@ -1775,9 +1766,6 @@ close_mysql(mysql);
 
 
 int main(void){
-    MYSQL *myconn = NULL;
-    MYSQL_RES *res = NULL;
-    MYSQL_ROW  row;
     int   connfd,sockfd;
     int   optval;
     int   flag_recv = 0;
@@ -1785,6 +1773,9 @@ int main(void){
     int   connects = 0;
     char  sql[MYSQL_MAX];
     char   ip[32];
+    MYSQL *myconn = NULL;
+    MYSQL_RES *res = NULL;
+    MYSQL_ROW  row;
     pthread_t tid;
     recv_datas recv_buf;
     size_t ret;
@@ -1796,7 +1787,7 @@ int main(void){
 
     myconn  = mysql_init(NULL);
     pthread_mutex_init(&mutex, NULL);
-    threadpool *pool = threadPoolcreate(20,0,100);
+   threadpool *pool = threadPoolcreate(20,3,100);
 
     if(!mysql_real_connect(myconn,"127.0.0.1","root","123456","chat",0,NULL,0)){
     fprintf(stderr, "Failed to connect to database: Error: %s\n",
@@ -1847,80 +1838,80 @@ for(;;){
         for(int i = 0;i < npfd;i++){
         connects++;
         if(events[i].data.fd == sockfd){
-        if(connects > MAXEVENTS){
-        my_err("达到最大连接数...",__LINE__);
-        continue;
-        }
-        connfd = accept(events[i].data.fd,(struct sockaddr*)&cliaddr,&clen);
-        printf("客户端[IP：%s],[port: %d]已链接...\n",
-        inet_ntop(AF_INET,&cliaddr.sin_addr.s_addr,ip,sizeof(ip)),ntohs(cliaddr.sin_port));  //将网络地址格式反向转化
-        if(connfd <= 0){
-        my_err("accpet",__LINE__);
-        continue;
-        }
-        ev.data.fd = connfd;
-        ev.events = EPOLLIN  | EPOLLET | EPOLLRDHUP | EPOLLERR;
-        epoll_ctl(epfd,EPOLL_CTL_ADD,connfd,&ev); //新增套接字
+            if(connects > MAXEVENTS){
+                my_err("达到最大连接数...",__LINE__);
+                continue;
+            }
+            connfd = accept(events[i].data.fd,(struct sockaddr*)&cliaddr,&clen);
+            printf("客户端[IP：%s],[port: %d]已链接...\n",
+            inet_ntop(AF_INET,&cliaddr.sin_addr.s_addr,ip,sizeof(ip)),ntohs(cliaddr.sin_port));  //将网络地址格式反向转化
+            if(connfd <= 0){
+                my_err("accpet",__LINE__);
+                continue;
+            }
+            ev.data.fd = connfd;
+            ev.events = EPOLLIN  | EPOLLET | EPOLLRDHUP | EPOLLERR;
+            epoll_ctl(epfd,EPOLL_CTL_ADD,connfd,&ev); //新增套接字
         }
         /* 用户非正常挂断 */
         else if((events[i].events & EPOLLIN) && (events[i].events & EPOLLRDHUP) || (events[i].events & EPOLLIN) && (events[i].events & EPOLLERR)){
-        printf("客户端ip[%d]非正常断开连接...\n",events[i].data.fd);
-        bzero(sql,sizeof(sql));
-        sprintf(sql,"update person set state = \'0\' where state = \'1\' and fd = \'%d\';",events[i].data.fd);
-        mysql_query(myconn,sql);
-        epoll_ctl(epfd,EPOLL_CTL_DEL,events[i].data.fd,0); //删去套接字
-        close(events[i].data.fd);
-        connects--;
+            printf("客户端ip[%d]非正常断开连接...\n",events[i].data.fd);
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"update person set state = \'0\' where state = \'1\' and fd = \'%d\';",events[i].data.fd);
+            mysql_query(myconn,sql);
+            epoll_ctl(epfd,EPOLL_CTL_DEL,events[i].data.fd,0); //删去套接字
+            close(events[i].data.fd);
+            connects--;
         }
         /* 用户正常发来消息请求 */
         else if(events[i].events & EPOLLIN){
         bzero(&recv_buf,sizeof(recv_datas));
         if((ret = recv(events[i].data.fd,&recv_buf,sizeof(recv_datas),MSG_WAITALL)) < 0){
-        my_err("recv",__LINE__);
-        close(events[i].data.fd);
-        continue;
+            my_err("recv",__LINE__);
+            close(events[i].data.fd);
+            continue;
         }
         if(recv_buf.type == USER_OUT){
-        if(send(events[i].data.fd,&recv_buf,sizeof(recv_datas),0) < 0){
-        my_err("send",__LINE__);
-        }
-        printf("客户端ip[%d]已断开连接...\n",events[i].data.fd);
-        bzero(sql,sizeof(sql));
-        sprintf(sql,"update person set state = \'0\' where state = \'1\' and fd = \'%d\';",events[i].data.fd);
-        mysql_query(myconn,sql);
-        epoll_ctl(epfd,EPOLL_CTL_DEL,events[i].data.fd,0);
-        close(events[i].data.fd);
-        connects--;
-        //mysql_free_result(res);
-        continue;
+            if(send(events[i].data.fd,&recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+            printf("客户端ip[%d]已断开连接...\n",events[i].data.fd);
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"update person set state = \'0\' where state = \'1\' and fd = \'%d\';",events[i].data.fd);
+            mysql_query(myconn,sql);
+            epoll_ctl(epfd,EPOLL_CTL_DEL,events[i].data.fd,0);
+            close(events[i].data.fd);
+            connects--;
+            //mysql_free_result(res);
+            continue;
         }
         if(recv_buf.type == USER_LOGIN){
-        memset(sql,0,sizeof(sql));
-        sprintf(sql,"select * from person where id = \'%d\';",recv_buf.send_id);
-        pthread_mutex_lock(&mutex);
-        mysql_query(myconn,sql);
-        res = mysql_store_result(myconn);
-        if(mysql_fetch_row(res) == NULL){
-        recv_buf.type = ID_ERROR;
-        bzero(recv_buf.write_buff,sizeof(recv_buf.write_buff));
-        printf("login failed...\n");
-        strcpy(recv_buf.write_buff,"id error");
-        if(send(events[i].data.fd,&recv_buf,sizeof(recv_datas),0)<0){
-        my_err("send",__LINE__);
-        }
-        pthread_mutex_unlock(&mutex);
-        continue;
-        }
-        bzero(sql,sizeof(sql));
-        sprintf(sql,"update person set fd = \'%d\' where id = \'%d\';",events[i].data.fd,recv_buf.send_id);
-        mysql_query(myconn,sql);
-        pthread_mutex_unlock(&mutex);
+            memset(sql,0,sizeof(sql));
+            sprintf(sql,"select * from person where id = \'%d\';",recv_buf.send_id);
+            pthread_mutex_lock(&mutex);
+            mysql_query(myconn,sql);
+            res = mysql_store_result(myconn);
+            if(mysql_fetch_row(res) == NULL){
+                recv_buf.type = ID_ERROR;
+                bzero(recv_buf.write_buff,sizeof(recv_buf.write_buff));
+                printf("login failed...\n");
+                strcpy(recv_buf.write_buff,"id error");
+                if(send(events[i].data.fd,&recv_buf,sizeof(recv_datas),0)<0){
+                    my_err("send",__LINE__);
+                }
+                pthread_mutex_unlock(&mutex);
+                continue;
+            }
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"update person set fd = \'%d\' where id = \'%d\';",events[i].data.fd,recv_buf.send_id);
+            mysql_query(myconn,sql);
+            pthread_mutex_unlock(&mutex);
         }
         recv_buf.recvfd = events[i].data.fd;
         memcpy(bf,&recv_buf,sizeof(recv_datas));
         threadpooladd(pool,ser_deal,(void*)bf);      //引入线程池
-        // pthread_create(&tid,NULL,(void*)ser_deal,(void*)bf);
-        // pthread_detach(tid);
+        //pthread_create(&tid,NULL,(void*)ser_deal,(void*)bf);
+        //pthread_detach(tid);
         }
     }
 }
