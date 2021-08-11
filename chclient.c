@@ -67,6 +67,7 @@ char * my_passwd(char* passwd){
 //来用写发数据
 void *send_mission(void*arg){
         int   connfd = *(int*)arg;
+        int   record;
         int   choice;
         int   i;
         int   ret;
@@ -76,7 +77,7 @@ void *send_mission(void*arg){
         int   sure;
         struct stat buff;
         send_data = (recv_datas*)malloc(sizeof(recv_datas));
-            while(1){
+        while(1){
             printf("\t***************************************\n");
             printf("\t************欢迎来到登录界面***********\n");
             printf("\t***************************************\n");
@@ -93,14 +94,13 @@ void *send_mission(void*arg){
             scanf("%d",&choice);
             getchar();
             switch(choice){
-                case 1:        //登陆
+            case 1:        //登陆
                 send_data->type = USER_LOGIN;
                 printf("please input id: ");
                 scanf("%d",&send_data->send_id);
                 getchar();
                 printf("please input password: ");
                 bzero(send_data->read_buff,sizeof(send_data->read_buff));
-                i = 0;
                 my_passwd(send_data->read_buff);
                 printf("\n");
                 bzero(send_data->write_buff,sizeof(send_data->write_buff));
@@ -124,7 +124,6 @@ void *send_mission(void*arg){
                 my_passwd(password1);
                 printf("\n");
                 printf("please input passwd again: ");
-                i = 0;
                 my_passwd(password2);
                 printf("\n");
             if(strcmp(password1,password2) == 0){
@@ -167,9 +166,9 @@ void *send_mission(void*arg){
 
             case 0:
                 send_data->type = USER_OUT;   //登出
-            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-                my_err("send",__LINE__);
-            }
+                if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                    my_err("send",__LINE__);
+                }
                 pthread_exit(0);
             break;
 
@@ -179,7 +178,7 @@ void *send_mission(void*arg){
                 getchar();
             break;
             }
-            if((choice > 3) || (choice < 0))    continue;
+            if((choice >= 3) || (choice < 0))    continue;
             else if (choice == 1){
                 if (strcmp(send_data->write_buff, "id error") == 0){
                     printf("ID or PASSWD error!!!\n");
@@ -191,7 +190,7 @@ void *send_mission(void*arg){
                     printf("按任意键继续...\n");
                     getchar();
                     break;
-                    }
+                }
             }
             else if (choice == 2){
                 printf("%s\n",send_data->write_buff);
@@ -200,8 +199,7 @@ void *send_mission(void*arg){
                 getchar();
                 continue;
             }
-            else if(choice == 3)   continue;
-        }
+    }
     while(1){
         printf("\t***************************************\n");
         printf("\t********welcome to chatroom************\n");
@@ -260,22 +258,19 @@ void *send_mission(void*arg){
         printf("请选择: ");
         scanf("%d",&choice);
         getchar();
-        switch(choice)
-        {
+        switch(choice){
         case 1:
         send_data->type = SEND_INFO;
-        while(1)
-        {
-        printf("please input your friend id: ");
-        scanf("%d",&send_data->recv_id);
-        getchar();
-        if(send_data->recv_id != send_data->send_id)
-        {
-        break;
-        }
-        printf("正常点，不要自言自语!!!\n");
-        printf("按任意键继续");
-        getchar();
+        while(1){
+            printf("please input your friend id: ");
+            scanf("%d",&send_data->recv_id);
+            getchar();
+            if(send_data->recv_id != send_data->send_id){
+                break;
+            }
+            printf("正常点，不要自言自语!!!\n");
+            printf("按任意键继续");
+            getchar();
         }
         printf("\t--与->%d<-好友聊天窗口--\n",send_data->recv_id);
         while(1){
@@ -308,8 +303,7 @@ void *send_mission(void*arg){
             printf("请输入想加好友的id：");
             scanf("%d",&send_data->recv_id);
             getchar();
-            if(send_data->send_id != send_data->recv_id)
-            {
+            if(send_data->send_id != send_data->recv_id){
                 break;
             }
             printf("没朋友？太孤单寂寞了吧！！！");
@@ -913,6 +907,20 @@ void *send_mission(void*arg){
         if(sure != 1){
             break;
         }
+        send_data->type = SEND_FILE;
+        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        pthread_mutex_lock(&cl_mu);
+        pthread_cond_wait(&cl_co, &cl_mu);
+        pthread_mutex_unlock(&cl_mu);
+        if(strcmp(send_data->write_buff,"no people") == 0){
+            printf("没有该id,发送失败!!!\n");
+            printf("请按任意键退出...\n");
+            getchar();
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            break;
+        }
         send_data->flag = 1;
         send_data->mun = -1;
         bzero(send_data->write_buff,sizeof(send_data->write_buff));
@@ -954,11 +962,8 @@ void *send_mission(void*arg){
             pthread_mutex_lock(&cl_mu);
             pthread_cond_wait(&cl_co, &cl_mu);
             pthread_mutex_unlock(&cl_mu);
-            send_data->cont++;
-            printf("已发送%d个包\n",send_data->cont);
         }
         close(fp);
-            printf("已全部发送至服务器!\n");
             send_data->type = FINSH;
             if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
                 my_err("send",__LINE__);
@@ -967,11 +972,9 @@ void *send_mission(void*arg){
             pthread_cond_wait(&cl_co, &cl_mu);
             pthread_mutex_unlock(&cl_mu);
             if(strcmp(send_data->write_buff,"no people") == 0){
-                printf("无效的发送者!!!\n");
+                printf("发送失败!!!\n");
             }
-            else if(strcmp(send_data->write_buff,"outline") == 0){
-                printf("对方不在线，无法收到你的文件!\n");
-            }else if(strcmp(send_data->write_buff,"nice") == 0){
+            else if(strcmp(send_data->write_buff,"nice") == 0){
                 printf("已成功发送给对方!!!\n");
             }
             send_data->recv_id = 0;
@@ -981,58 +984,154 @@ void *send_mission(void*arg){
 
 
         case 23:
-        if(file_info->num == 0){
-                printf("没有收到文件..\n");
-                printf("按任意键继续...");
-                getchar();
-                break;
-        }
-                printf("[id:%d][name:%s]给你发送了[文件%s大小为%d]!",file_info->send_id,file_info->send_nickname,file_info->filepath,file_info->filesize);
-        while(1){
-                printf("处理方式:[1.接收] [2.拒绝]\n");
-                scanf("%d",&sure);
-                getchar();
-            if(sure == 1){
-                send_data->cont = 0;
-                send_data->recv_id = file_info->send_id;
-                bzero(send_data->write_buff,sizeof(send_data->write_buff));
-                strcpy(send_data->write_buff,file_info->send_nickname);
+            int choose;
+            printf("\t***************************************\n");
+            printf("\t************文件接收选项***************\n");
+            printf("\t***************************************\n");
+            printf("\t*****        1.实时文件           *****\n");
+            printf("\t*****                             *****\n");
+            printf("\t*****        2.离线文件           *****\n");
+            printf("\t*****                             *****\n");
+            printf("\t*****        0.退出               *****\n");
+            printf("\t***************************************\n");
+            printf("\t***************************************\n");
+            printf("请选择: ");
+            scanf("%d",&choose);
+            getchar();
+            switch(choose){
+            case 1:
+            if(file_info->num == 0){
+                    printf("没有收到文件..\n");
+                    printf("按任意键继续...");
+                    getchar();
+                    break;
+            }
+            for(int j = 0;j < file_info->num; j++){
+                printf("\t--[文件个数:%d]--\n",file_info->num);
+                printf("[id:%d][name:%s]给你发送了[文件%s大小为%d]!",file_info->send_id[j],file_info->send_nickname[j],file_info->filepath[j],file_info->filesize[j]);
             while(1){
-                send_data->type = READ_FILE;
-            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-            my_err("send",__LINE__);
-            }
-                printf("开始接收文件...\n");
-                pthread_mutex_lock(&cl_mu);
-                pthread_cond_wait(&cl_co, &cl_mu);
-                pthread_mutex_unlock(&cl_mu);
-                send_data->cont++;
-                printf("已接收%d个包",send_data->cont);
-            if(strcmp(send_data->write_buff,"finish") == 0){
-                printf("文件接收完毕!!");
-                printf("按任意键继续");
-                getchar();
+                    printf("处理方式:[1.接收] [2.拒绝]\n");
+                    scanf("%d",&sure);
+                    getchar();
+                if(sure == 1){
+                    send_data->cont = 0;
+                    send_data->recv_id = file_info->send_id[j];
+                    bzero(send_data->write_buff,sizeof(send_data->write_buff));
+                    strcpy(send_data->write_buff,file_info->send_nickname[j]);
+                while(1){
+                    send_data->type = READ_FILE;
+                if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                    my_err("send",__LINE__);
+                }
+                    printf("开始接收文件...\n");
+                    pthread_mutex_lock(&cl_mu);
+                    pthread_cond_wait(&cl_co, &cl_mu);
+                    pthread_mutex_unlock(&cl_mu);
+                    send_data->cont++;
+                    printf("已接收%d个包",send_data->cont);
+                if(strcmp(send_data->write_buff,"finish") == 0){
+                    printf("文件接收完毕!!");
+                    printf("按任意键继续");
+                    getchar();
+                    break;
+                }
+                    // getchar();
+                }
                 break;
+                }
+                else if(sure == 2){
+                    printf("你拒绝了id:%d的文件...\n",file_info->send_id[j]);
+                    printf("按任意键继续");
+                    getchar();
+                    break;
+                }
+                else{
+                    printf("输入无效，请重新输入!");
+                    printf("按任意键继续");
+                    getchar();
+                    continue;
+                }
             }
+        }
+            printf("是否清空文件缓存? 1.yes 2.no\n");
+            scanf("%d",&sure);
+            getchar();
+            if(sure == 1)  bzero(file_info,sizeof(FILE_INFO));
+            break;
+
+            case 2:
+                    if(box->file_num == 0){
+                    printf("没有收到离线文件..\n");
+                    printf("按任意键继续...");
+                    getchar();
+                    break;
+            }
+            for(int j = 0;j < box->file_num; j++){
+                    printf("\t--[文件数目:%d]--\n",box->file_num);
+                    printf("[id:%d][name:%s]给你发送了[文件%s大小为%d]!",box->file_send_id[j],box->file_send_nickname[j],box->file_pathname[j],box->file_size[j]);
+            while(1){
+                    printf("处理方式:[1.接收] [2.拒绝]\n");
+                    scanf("%d",&sure);
+                    getchar();
+                if(sure == 1){
+                    send_data->cont = 0;
+                    send_data->recv_id = box->file_send_id[j];
+                    bzero(send_data->write_buff,sizeof(send_data->write_buff));
+                    strcpy(send_data->write_buff,box->file_send_nickname[j]);
+                while(1){
+                    send_data->type = READ_FILE;
+                if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                    my_err("send",__LINE__);
+                }
+                    printf("开始接收文件...\n");
+                    pthread_mutex_lock(&cl_mu);
+                    pthread_cond_wait(&cl_co, &cl_mu);
+                    pthread_mutex_unlock(&cl_mu);
+                    send_data->cont++;
+                    printf("已接收%d个包",send_data->cont);
+                if(strcmp(send_data->write_buff,"finish") == 0){
+                    printf("文件接收完毕!!");
+                    printf("按任意键继续");
+                    getchar();
+                    break;
+                }
+                    // getchar();
+                }
+                break;
+                }
+                else if(sure == 2){
+                    printf("你拒绝了id:%d的文件...\n",box->file_send_id[j]);
+                    printf("按任意键继续");
+                    getchar();
+                    break;
+                }
+                else{
+                    printf("输入无效，请重新输入!\n");
+                    printf("按任意键继续");
+                    getchar();
+                    continue;
+                }
+            }
+        }
+            printf("是否清空离线文件缓存? 1.yes 2.no\n");
+            scanf("%d",&sure);
+            getchar();
+            if(sure == 1){
+                for(int j = 0;j < box->file_num;j++){
+                    bzero(box->file_pathname[j],sizeof(box->file_pathname[j]));
+                    bzero(box->file_send_nickname[j],sizeof(box->file_send_nickname[j]));
+                    box->file_send_id[j] = 0;
+                    box->file_size[j] = 0;
+                }
+                box->file_num = 0;
+                printf("清理缓存成功!\n");
+                printf("按任意键继续");
                 getchar();
             }
             break;
-            }
-            else if(sure == 2){
-                printf("你拒绝了id:%d的文件...\n",file_info->send_id);
-                file_info->num = 0;
-                file_info->filesize = 0;
-                bzero(file_info,sizeof(file_info));
-                printf("按任意键继续");
-                getchar();
-                break;
-            }
-            else{
-                printf("输入无效，请重新输入!");
-                printf("按任意键继续");
-                getchar();
-                continue;
-            }
+
+            case 0:
+            break;
         }
         break;
 
@@ -1101,7 +1200,7 @@ void *box_check(void * connfd){
     if(recv(*(int*)connfd,box,sizeof(BOX_MSG),MSG_WAITALL) < 0){
         my_err("recv",__LINE__);
     }
-    printf("\t离线收到的消息:--好友消息:%d条--好友邀请:%d条--群消息:%d条\n",box->recv_msgnum,box->fri_pls_num,box->group_msg_num);
+    printf("\t离线收到的消息:--好友消息:%d条--好友邀请:%d条--群消息:%d条--文件:%d个\n",box->recv_msgnum,box->fri_pls_num,box->group_msg_num,box->file_num);
     pthread_exit(0);
 }
 
@@ -1141,11 +1240,11 @@ void *recv_group_msg(void * connfd){
 }
 
 void *recv_file(void*connfd){
-    file_info->num = 1;
-    file_info->send_id = recv_data->send_id;
-    file_info->filesize = recv_data->filesize;
-    strcpy(file_info->filepath,recv_data->write_buff);
-    strcpy(file_info->send_nickname,recv_data->send_name);
+    file_info->send_id[file_info->num] = recv_data->send_id;
+    file_info->filesize[file_info->num] = recv_data->filesize;
+    strcpy(file_info->filepath[file_info->num],recv_data->write_buff);
+    strcpy(file_info->send_nickname[file_info->num],recv_data->send_name);
+    file_info->num += 1;
     pthread_exit(0);
 }
 
@@ -1158,13 +1257,14 @@ void *recv_mission(void*arg){
     box = (BOX_MSG*)malloc(sizeof(BOX_MSG));
     flist = (FRIENDS *)malloc(sizeof(FRIENDS));
     file_info = (FILE_INFO *)malloc(sizeof(FILE_INFO));
+    file_info->num = 0;
     grp_info_list = (GRP_INFO *)malloc(sizeof(GRP_INFO));
     recv_data  = (recv_datas*)malloc(sizeof(recv_datas));
     group_mem = (GRP_MEM_LIST *)malloc(sizeof(GRP_MEM_LIST));
     while(1){
         bzero(recv_data,sizeof(recv_datas));
         if((ret = recv(connfd,recv_data,sizeof(recv_datas),MSG_WAITALL)) < 0){
-        my_err("recv",__LINE__);
+            my_err("recv",__LINE__);
         }
         switch(recv_data->type){
             case USER_OUT:

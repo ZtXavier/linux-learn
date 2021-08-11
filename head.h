@@ -64,19 +64,19 @@ pthread_mutex_t cl_mu;
 pthread_cond_t  cl_co;
 
 typedef struct{
+    char    read_buff[MAX_MESSAGE];
+    char    write_buff[MAX_MESSAGE];
     int     filesize;
     int     mun;
     int     flag;
     int     type;
+    int     cont;
     int     sendfd;
     int     recvfd;
     int     send_id;
     int     recv_id;
-    char    send_name[24];
     char    recv_name[24];
-    char    read_buff[MAX_MESSAGE];
-    char    write_buff[MAX_MESSAGE];
-    int     cont;
+    char    send_name[24];
 }recv_datas;
 
 typedef struct friends{
@@ -87,11 +87,11 @@ typedef struct friends{
 }FRIENDS;
 
 typedef struct file{
-    char       send_nickname[50];
+    char       send_nickname[512][50];
     int        num;
-    int        send_id;
-    char       filepath[50];
-    int        filesize;
+    int        send_id[512];
+    char       filepath[512][50];
+    int        filesize[512];
 }FILE_INFO;
 
 typedef struct message{
@@ -117,6 +117,12 @@ typedef struct box_message{
     char    group_mem_nikename[512][50];     //发消息的人名
     char    group_message[512][MAX_MESSAGE]; //群消息
     int     group_id[512];                   //群号
+
+    int     file_num;                        //文件数量
+    char    file_send_nickname[512][50];     //发送文件的人名
+    int     file_send_id[512];               //发送文件的id
+    int     file_size[512];                  //文件的大小
+    char    file_pathname[512][50];          //文件的路径
 
 }BOX_MSG,*list_box;
 BOX_MSG *head;

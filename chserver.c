@@ -708,7 +708,7 @@ int send_info(recv_datas *mybag,MYSQL mysql){
                 return 0;
             }
         }
-    }else{                   //如果对方不在线，将放到状态链表中
+    }else{                   //如果对方不在线，将放到消息盒子中
         b = head;
         while(NULL != b){
             if(b->recv_id == recv_data->recv_id){
@@ -1274,6 +1274,7 @@ int finsh(recv_datas *mybag,MYSQL mysql){
     MYSQL_RES   *res = NULL;
     MYSQL_ROW    row;
     recv_datas  *recv_data = mybag;
+    BOX_MSG      *box = head;
     char         sql[MYSQL_MAX];
     bzero(sql,sizeof(sql));
     sprintf(sql,"select * from person where id = \'%d\';",recv_data->recv_id);
@@ -1290,7 +1291,36 @@ int finsh(recv_datas *mybag,MYSQL mysql){
                 my_err("send",__LINE__);
             }
             return 1;
-        }else{
+        }else{                           //如果对方不在线放入消息盒子
+            while(box != NULL){
+                if(box->recv_id == atoi(row[0])){
+                    break;
+                }
+                box = box->next;
+            }
+            if(box == NULL){
+                box = (list_box)malloc(sizeof(BOX_MSG));
+                box->file_num = 0;
+                box->recv_id = atoi(row[0]);    //存入收消息的id
+                strcpy(box->file_pathname[box->file_num],recv_data->write_buff);      //发的文件路径(名称)
+                box->file_send_id[box->file_num] = recv_data->send_id;                //发消息的id
+                strcpy(box->file_send_nickname[box->file_num],recv_data->send_name);  //发送文件的人的昵称
+                box->file_size[box->file_num++] = recv_data->filesize;                //发送的文件的大小
+                if(head == NULL){
+                head = box;
+                tail = box;
+                tail->next = NULL;
+            }else{
+                tail->next = box;
+                box ->next = NULL;
+                tail = box;
+            }
+            }else{
+                strcpy(box->file_pathname[box->file_num],recv_data->write_buff);      //发的文件路径(名称)
+                box->file_send_id[box->file_num] = recv_data->send_id;                //发消息的id
+                strcpy(box->file_send_nickname[box->file_num],recv_data->send_name);  //发送文件的人的昵称
+                box->file_size[box->file_num++] = recv_data->filesize;
+            }
             return 0;
         }
     }
@@ -1299,6 +1329,18 @@ int finsh(recv_datas *mybag,MYSQL mysql){
 int send_file(recv_datas *mybag,MYSQL mysql){
     int fp;
     recv_datas *recv_data = mybag;
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW    row;
+    BOX_MSG      *box = head;
+    char         sql[MYSQL_MAX];
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from person where id = \'%d\';",recv_data->recv_id);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){
+        return -1;
+    }
     if((fp = open("file",O_WRONLY|O_CREAT|O_APPEND,0775)) < 0){
         printf("%s\n",strerror(errno));
     }if(recv_data->flag == 0){
@@ -1376,6 +1418,7 @@ void *ser_deal(void *arg){
                 box->recv_msgnum = 0;
                 box->fri_pls_num = 0;
                 box->group_msg_num = 0;
+                box->file_num = 0;
                 box->next = NULL;
             if(head == NULL){
                 head = box;
@@ -1718,7 +1761,15 @@ void *ser_deal(void *arg){
 
         case SEND_FILE:
         pthread_mutex_lock(&mutex);
-        send_file(recv_buf,mysql);
+        ret = send_file(recv_buf,mysql);
+        if(ret == -1){
+            recv_buf->type = SEND_FILE;
+            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
+            strcpy(recv_buf->write_buff,"no people");
+            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }
         pthread_mutex_unlock(&mutex);
         break;
 
@@ -1733,15 +1784,8 @@ void *ser_deal(void *arg){
             if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
                 my_err("send",__LINE__);
             }
-        }else if(ret == 0){
-            recv_buf->type = SEND_FILE;
-            bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
-            strcpy(recv_buf->write_buff,"outline");
-            if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
-                my_err("send",__LINE__);
-            }
         }else{
-           recv_buf->type = SEND_FILE;
+            recv_buf->type = SEND_FILE;
             bzero(recv_buf->write_buff,sizeof(recv_buf->write_buff));
             strcpy(recv_buf->write_buff,"nice");
             if(send(recv_buf->recvfd,recv_buf,sizeof(recv_datas),0) < 0){
