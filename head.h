@@ -24,37 +24,39 @@
 #define   MAXEVENTS   1024   //最大事件数
 #define   BACKSPACE   127
 
-#define FRIENDS_MAXNUM  100      // 最大好友数量
-#define USER_LOGIN      1        // 登录
-#define USER_SIGN       2        // 注册
-#define USER_FIND       3        // 找回密码
-#define USER_CHANGE     4        // 修改密码
-#define SEND_INFO       5        // 发消息
-#define ADD_FRIEND      6        // 加好友
-#define DEL_FRIEND      7        // 删好友
-#define LOOK_FRI_LS     8        // 查看好友状态
-#define BLACK_LIST      9        //黑名单
-#define QUIT_BLACK     10        //取消黑名单
-#define RECV_INFO      11        //收消息
-#define LOOK_HISTORY   12        //查看消息记录
-#define DELE_HISTORY   13        //删除消息记录
-#define FRIEND_PLS     14        //好友申请
-#define CREATE_GROUP   15        //创建群聊
-#define SET_ADMIN      16        //设置管理员
-#define KICK_MEM       17        //踢人
-#define ADD_GROUP      18        //加群
-#define EXIT_GROUP     19        //退群
-#define SEND_GROUP_MSG 20        //群聊
-#define QUIT_ADMIN     21        //取消群管理员
-#define LOOK_GROUP_LS  22        //查看加入的群
-#define LOOK_GROUP_MEM 23        //查看群成员
-#define DISSOLVE_GROUP 24        //解散群
-#define RECV_GROUP_MSG 25        //收群消息
-#define SEND_FILE      26        //发文件
-#define RECV_FILE      27        //收文件
-#define FINSH          28        //服务器接收到全部文件的标志
-#define READ_FILE      29        //读客户端文件
-#define WRITE_FILE     30        //写到本地文件中
+#define FRIENDS_MAXNUM      100      // 最大好友数量
+#define USER_LOGIN          1        // 登录
+#define USER_SIGN           2        // 注册
+#define USER_FIND           3        // 找回密码
+#define USER_CHANGE         4        // 修改密码
+#define SEND_INFO           5        // 发消息
+#define ADD_FRIEND          6        // 加好友
+#define DEL_FRIEND          7        // 删好友
+#define LOOK_FRI_LS         8        // 查看好友状态
+#define BLACK_LIST          9        //黑名单
+#define QUIT_BLACK         10        //取消黑名单
+#define RECV_INFO          11        //收消息
+#define LOOK_HISTORY       12        //查看消息记录
+#define DELE_HISTORY       13        //删除消息记录
+#define FRIEND_PLS         14        //好友申请
+#define CREATE_GROUP       15        //创建群聊
+#define SET_ADMIN          16        //设置管理员
+#define KICK_MEM           17        //踢人
+#define ADD_GROUP          18        //加群
+#define EXIT_GROUP         19        //退群
+#define SEND_GROUP_MSG     20        //群聊
+#define QUIT_ADMIN         21        //取消群管理员
+#define LOOK_GROUP_LS      22        //查看加入的群
+#define LOOK_GROUP_MEM     23        //查看群成员
+#define DISSOLVE_GROUP     24        //解散群
+#define RECV_GROUP_MSG     25        //收群消息
+#define SEND_FILE          26        //发文件
+#define RECV_FILE          27        //收文件
+#define FINSH              28        //服务器接收到全部文件的标志
+#define READ_FILE          29        //读客户端文件
+#define WRITE_FILE         30        //写到本地文件中
+#define LOOK_GRP_HISTORY   31        //查看群消息记录
+#define DELE_GRP_HISTORY   32        //删除群消息记录
 
 #define ID_ERROR       -2        //帐号错误
 #define USER_OUT       -1        //用户登出
@@ -129,10 +131,12 @@ BOX_MSG *head;
 BOX_MSG *tail;
 
 typedef struct group_message{
-    int      group_send_id;              //发消息的id
-    int      group_msg_num;              //消息的数量
-    int      recv_id[512];               //收消息的id
-    char     message[512][MAX_MESSAGE];  //发送的消息
+    int      group_id;                      //群id
+    int      group_msg_num;                 //消息的数量
+    int      group_mem_id[512];             //群成员的id
+    char     group_nikename[24];            //群的昵称
+    char     group_mem_nikename[512][24];   //群成员的昵称
+    char     message[8192][MAX_MESSAGE];    //发送的消息
 }GRP_MSG;
 
 typedef struct group_list{

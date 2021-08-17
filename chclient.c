@@ -21,6 +21,7 @@ recv_datas   *send_data;
 recv_datas   *recv_data;
 BOX_MSG      *box;
 MSG          *msg;
+GRP_MSG      *group_msg;
 FRIENDS      *flist;
 GRP_INFO     *grp_info_list;
 GRP_MEM_LIST *group_mem;
@@ -252,7 +253,7 @@ void *send_mission(void*arg){
         printf("\t*****                             *****\n");
         printf("\t*****        24.修改密码          *****\n");
         printf("\t*****                             *****\n");
-        printf("\t*****        0.退出              *****\n");
+        printf("\t*****        0.退出               *****\n");
         printf("\t*****                             *****\n");
         printf("\t***************************************\n");
         printf("请选择: ");
@@ -504,10 +505,11 @@ void *send_mission(void*arg){
         if(msg->num == 0){
             printf("没有聊天记录...\n");
         }else{
-            for(i = 0;i< msg->num;i++){
-                printf("\t[%d 对 %d 说：%s]",msg->send_id[i],msg->recv_id[i],msg->message[i]);
+            for(i = 0;i < msg->num;i++){
+                printf("\t[id:%d]对[id:%d]:%s\n",msg->send_id[i],msg->recv_id[i],msg->message[i]);
             }
         }
+        send_data->recv_id = 0;
         printf("按任意键继续..");
         getchar();
         break;
@@ -623,8 +625,6 @@ void *send_mission(void*arg){
         printf("按任意键继续...\n");
         getchar();
         break;
-
-
 
         case 14:
         send_data->type = EXIT_GROUP;
@@ -895,9 +895,17 @@ void *send_mission(void*arg){
         bzero(buf,sizeof(buf));
         send_data->type = SEND_FILE;
         send_data->cont = 0;
-        printf("请输入对方的id: ");
-        scanf("%d",&send_data->recv_id);
-        getchar();
+        while(1){
+            printf("请输入对方的id: ");
+            scanf("%d",&send_data->recv_id);
+            getchar();
+            if(send_data->send_id != send_data->recv_id){
+                break;
+            }
+            printf("自己不可以给自己发文件哦!!!\n");
+            printf("按任意键继续");
+            getchar();
+        }
         printf("请输入你要发送的文件的路径: ");
         scanf("%s",buf);
         getchar();
@@ -982,7 +990,6 @@ void *send_mission(void*arg){
             getchar();
         break;
 
-
         case 23:
             int choose;
             printf("\t***************************************\n");
@@ -1014,28 +1021,24 @@ void *send_mission(void*arg){
                     scanf("%d",&sure);
                     getchar();
                 if(sure == 1){
-                    send_data->cont = 0;
                     send_data->recv_id = file_info->send_id[j];
                     bzero(send_data->write_buff,sizeof(send_data->write_buff));
                     strcpy(send_data->write_buff,file_info->send_nickname[j]);
                 while(1){
                     send_data->type = READ_FILE;
-                if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-                    my_err("send",__LINE__);
-                }
-                    printf("开始接收文件...\n");
-                    pthread_mutex_lock(&cl_mu);
-                    pthread_cond_wait(&cl_co, &cl_mu);
-                    pthread_mutex_unlock(&cl_mu);
-                    send_data->cont++;
-                    printf("已接收%d个包",send_data->cont);
-                if(strcmp(send_data->write_buff,"finish") == 0){
-                    printf("文件接收完毕!!");
-                    printf("按任意键继续");
-                    getchar();
-                    break;
-                }
-                    // getchar();
+                    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                        my_err("send",__LINE__);
+                    }
+                        printf("开始接收文件...\n");
+                        pthread_mutex_lock(&cl_mu);
+                        pthread_cond_wait(&cl_co, &cl_mu);
+                        pthread_mutex_unlock(&cl_mu);
+                    if(strcmp(send_data->write_buff,"finish") == 0){
+                        printf("文件接收完毕!!");
+                        printf("按任意键继续");
+                        getchar();
+                        break;
+                    }
                 }
                 break;
                 }
@@ -1074,7 +1077,6 @@ void *send_mission(void*arg){
                     scanf("%d",&sure);
                     getchar();
                 if(sure == 1){
-                    send_data->cont = 0;
                     send_data->recv_id = box->file_send_id[j];
                     bzero(send_data->write_buff,sizeof(send_data->write_buff));
                     strcpy(send_data->write_buff,box->file_send_nickname[j]);
@@ -1087,15 +1089,12 @@ void *send_mission(void*arg){
                     pthread_mutex_lock(&cl_mu);
                     pthread_cond_wait(&cl_co, &cl_mu);
                     pthread_mutex_unlock(&cl_mu);
-                    send_data->cont++;
-                    printf("已接收%d个包",send_data->cont);
                 if(strcmp(send_data->write_buff,"finish") == 0){
                     printf("文件接收完毕!!");
                     printf("按任意键继续");
                     getchar();
                     break;
                 }
-                    // getchar();
                 }
                 break;
                 }
@@ -1135,16 +1134,13 @@ void *send_mission(void*arg){
         }
         break;
 
-
         case 24:         //修改密码
                 send_data->type = USER_CHANGE;
                 printf("please input your original passwd: ");
-                i = 0;
                 my_passwd(send_data->read_buff);
                 printf("\n");
                 printf("please input your new passwd: ");
-                i = 0;
-            my_passwd(send_data->write_buff);
+                my_passwd(send_data->write_buff);
             if((ret = send(connfd,send_data,sizeof(recv_datas),0)) < 0){
                 my_err("send",__LINE__);
             }
@@ -1163,6 +1159,67 @@ void *send_mission(void*arg){
             }
                 bzero(send_data->write_buff,sizeof(send_data->write_buff));
                 bzero(send_data->read_buff,sizeof(send_data->read_buff));
+        break;
+        //群聊天记录的删除有bug,需要分表，以后改
+        case 25:
+            send_data->type = LOOK_GRP_HISTORY;
+            printf("请输入你要查询聊天记录的群id：");
+            scanf("%d",&send_data->recv_id);
+            getchar();
+            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_wait(&cl_co,&cl_mu);
+            pthread_mutex_unlock(&cl_mu);
+            if(strcmp(send_data->write_buff,"not enter") == 0){
+                printf("您不再群中，请先加群!!!\n");
+                printf("按任意键继续...\n");
+                getchar();
+                send_data->recv_id = 0;
+                bzero(send_data->write_buff,sizeof(send_data->write_buff));
+                break;
+            }
+            if(group_msg->group_msg_num == 0)
+                printf("该群没有聊天记录...\n");
+            else{
+                printf("\t--[群id:%d][群昵称:%s]聊天记录:--\n",group_msg->group_id,group_msg->group_nikename);
+                for(i = 0;i < group_msg->group_msg_num;i++){
+                    printf("\t[id:%d][昵称:%s]:%s\n",group_msg->group_mem_id[i],group_msg->group_mem_nikename[i],group_msg->message[i]);
+                }
+            }
+            send_data->recv_id = 0;
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            printf("显示完毕，按任意键继续...");
+            getchar();
+        break;
+
+        case 26:
+            send_data->type = DELE_GRP_HISTORY;
+            printf("请输入你要删除聊天记录的群id：");
+            scanf("%d",&send_data->recv_id);
+            getchar();
+            if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+            pthread_mutex_lock(&cl_mu);
+            pthread_cond_wait(&cl_co,&cl_mu);
+            pthread_mutex_unlock(&cl_mu);
+            if(strcmp(send_data->write_buff,"not enter") == 0){
+                printf("您不再群中，请先加群!!!\n");
+                printf("按任意键继续...\n");
+                getchar();
+            }else if(strcmp(send_data->write_buff,"dele success") == 0){
+                printf("删除成功！！\n");
+                printf("按任意键继续...\n");
+                getchar();
+            }else if(strcmp(send_data->write_buff,"have done") == 0){
+                printf("删除成功！！！\n");
+                printf("按任意键继续...\n");
+                getchar();
+            }
+            send_data->recv_id = 0;
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
         break;
 
         case 0:         //二级界面退出
@@ -1211,6 +1268,13 @@ void *look_msg(void * connfd){
     pthread_exit(0);
 }
 
+void *look_grp_msg(void * connfd){
+    if(recv(*(int*)connfd,group_msg,sizeof(GRP_MSG),MSG_WAITALL) < 0){
+        my_err("recv",__LINE__);
+    }
+    pthread_exit(0);
+}
+
 void *look_group_info(void *connfd){
     if(recv(*(int*)connfd,grp_info_list,sizeof(GRP_INFO), MSG_WAITALL) < 0){
         my_err("recv", __LINE__);
@@ -1254,6 +1318,7 @@ void *recv_mission(void*arg){
     int   fp;
     pthread_t tid;
     msg = (MSG*)malloc(sizeof(MSG));
+    group_msg = (GRP_MSG*)malloc(sizeof(GRP_MSG));
     box = (BOX_MSG*)malloc(sizeof(BOX_MSG));
     flist = (FRIENDS *)malloc(sizeof(FRIENDS));
     file_info = (FILE_INFO *)malloc(sizeof(FILE_INFO));
@@ -1269,6 +1334,13 @@ void *recv_mission(void*arg){
         switch(recv_data->type){
             case USER_OUT:
             printf("客户端退出...");
+            free(msg);
+            free(box);
+            free(flist);
+            free(file_info);
+            free(grp_info_list);
+            free(recv_data);
+            free(group_mem);
             pthread_exit(0);
             break;
 
@@ -1530,6 +1602,26 @@ void *recv_mission(void*arg){
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
+
+            case LOOK_GRP_HISTORY:
+            pthread_mutex_lock(&cl_mu);
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_create(&tid,NULL,look_grp_msg,arg);
+            pthread_join(tid, NULL);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+            case DELE_GRP_HISTORY:
+            pthread_mutex_lock(&cl_mu);
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            strcpy(send_data->write_buff,recv_data->write_buff);
+            pthread_cond_signal(&cl_co);
+            pthread_mutex_unlock(&cl_mu);
+            break;
+
+
         }
     }
 }

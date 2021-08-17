@@ -31,11 +31,11 @@ typedef struct mission{
 
 /* 线程池结构体 */
 typedef struct CThread_Pool{
-    
+
     CThread_mission  *mission;         /* 任务队列 */
     int queue_capacity;                /* 容量 */
     int queue_head;                    /* 队列头部->取数据 */
-    int queue_rear;                    /* 队列尾部->存数据 */ 
+    int queue_rear;                    /* 队列尾部->存数据 */
     int queue_size_mission;            /* 任务队列在任务数目 */
 
     pthread_mutex_t  pool_mutex;       /* 互斥锁整个线程 */
@@ -43,9 +43,9 @@ typedef struct CThread_Pool{
     pthread_cond_t   notFull;          /* 任务队列是否满(生产者) */
     pthread_cond_t   notEmpty;         /* 任务队列是否空(消费者) */  
     pthread_t        *threadID;        /* 工作线程ID */
-    pthread_t         manageID;        /* 管理者线程ID */      
+    pthread_t         manageID;        /* 管理者线程ID */
     int maxthread_num;                 /* 线程池最大线程数 */
-    int minthread_num;                 /* 线程池最小线程数 */  
+    int minthread_num;                 /* 线程池最小线程数 */
     int busynum;                       /* 工作线程个数 */
     int livenum;                       /* 存活线程个数 */
     int exitnum;                       /* 要销毁的线程个数 */
@@ -433,7 +433,7 @@ int user_login(recv_datas *mybag,MYSQL mysql){
     pthread_mutex_unlock(&mutex);
     return 0;
     }
-    if(strcmp(row[2],recv_data->read_buff) == 0){          //判断密码
+    if(strcmp(row[2],recv_data->read_buff) == 0){                //判断密码
         strcpy(recv_data->send_name,row[1]);                     //将昵称写入缓冲区好友申请时发送给对方
         bzero(sql,sizeof(sql));
         sprintf(sql,"update person set state = \'1\' where id = \'%d\';",recv_data->send_id);
@@ -1216,6 +1216,11 @@ int send_group_msg(recv_datas *mybag,MYSQL mysql){
             pthread_mutex_unlock(&mutex);
             return -1;
         }
+
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"insert into grps_message values(\'%d\',\'%d\',\'%s\',\'%s\',\'1\');",recv_data->recv_id,recv_data->send_id,recv_data->send_name,recv_data->read_buff);
+        ret = mysql_query(&mysql,sql);
+
         bzero(sql,sizeof(sql));
         sprintf(sql,"select * from groups where group_id = \'%d\';",recv_data->recv_id);
         ret = mysql_query(&mysql,sql);
@@ -1269,6 +1274,129 @@ recv_data->type = SEND_GROUP_MSG;
 pthread_mutex_unlock(&mutex);
 return 0;
 }
+
+
+int look_grp_history(recv_datas *mybag,MYSQL mysql){
+    MYSQL_RES  *res = NULL;
+    MYSQL_RES  *resl = NULL;
+    MYSQL_ROW   row,row2;
+    recv_datas *recv_data = mybag;
+    GRP_MSG     *group_msg = NULL;
+    char         sql[MYSQL_MAX];
+    group_msg = (GRP_MSG*)malloc(sizeof(GRP_MSG));
+    group_msg->group_msg_num = 0;
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups where group_id = \'%d\'and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
+    int ret = mysql_query(&mysql,sql);
+    resl = mysql_store_result(&mysql);
+    row2 = mysql_fetch_row(resl);
+    if(row2 == NULL){
+        recv_data->type = LOOK_GRP_HISTORY;
+        bzero(recv_data->write_buff,sizeof(recv_data->write_buff));
+        strcpy(recv_data->write_buff,"not enter");
+        if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        if(send(recv_data->recvfd,group_msg,sizeof(GRP_MSG),0) < 0){
+            my_err("send",__LINE__);
+        }
+        return 0;               //不在群中
+    }
+    else{
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from grps_message where grp_id = \'%d\' and grp_mem_id = \'%d\' and look = \'1\';",recv_data->recv_id,recv_data->send_id);
+        ret = mysql_query(&mysql,sql);
+        res = mysql_store_result(&mysql);
+        row = mysql_fetch_row(res);
+        if(!row){
+            if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+            if(send(recv_data->recvfd,group_msg,sizeof(GRP_MSG),0) < 0){
+                my_err("send",__LINE__);
+            }
+            return -1;     //没有消息记录
+        }else{
+            strcpy(group_msg->group_nikename,row2[1]);
+            group_msg->group_id = atoi(row2[0]);
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"select * from grps_message where grp_id = \'%d\';",recv_data->recv_id);
+            ret = mysql_query(&mysql,sql);
+            res = mysql_store_result(&mysql);
+            while((row = mysql_fetch_row(res)) != NULL){
+                group_msg->group_mem_id[group_msg->group_msg_num] = atoi(row[1]);
+                strcpy(group_msg->group_mem_nikename[group_msg->group_msg_num],row[2]);
+                strcpy(group_msg->message[group_msg->group_msg_num++],row[3]);
+            }
+        }
+            if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+            if(send(recv_data->recvfd,group_msg,sizeof(GRP_MSG),0) < 0){
+                my_err("send",__LINE__);
+            }
+    }
+    return 1;
+}
+
+int dele_grp_history(recv_datas *mybag,MYSQL mysql){
+    MYSQL_RES   *res = NULL;
+    MYSQL_ROW    row;
+    recv_datas  *recv_data = mybag;
+    char         sql[MYSQL_MAX];
+
+    bzero(sql,sizeof(sql));
+    sprintf(sql,"select * from groups where group_id = \'%d\' and group_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
+    int ret = mysql_query(&mysql,sql);
+    res = mysql_store_result(&mysql);
+    row = mysql_fetch_row(res);
+    if(row == NULL){
+        bzero(recv_data->write_buff,sizeof(recv_data->write_buff));
+        strcpy(recv_data->write_buff,"not enter");
+        if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+            my_err("send",__LINE__);
+        }
+        return 0;
+    }else{
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"update grps_message set look = \'0\' where grp_id = \'%d\' and grp_mem_id = \'%d\';",recv_data->recv_id,recv_data->send_id);
+        ret = mysql_query(&mysql,sql);
+        bzero(sql,sizeof(sql));
+        sprintf(sql,"select * from grps_message where look = \'1\' and grp_id = \'%d\';",recv_data->recv_id);
+        ret = mysql_query(&mysql,sql);
+        res = mysql_store_result(&mysql);
+        row = mysql_fetch_row(res);
+        if(row == NULL){
+            bzero(sql,sizeof(sql));
+            sprintf(sql,"delete from grps_message where look = \'0\' and grp_id = \'%d\';",recv_data->recv_id);
+            ret = mysql_query(&mysql,sql);
+            bzero(recv_data->write_buff,sizeof(recv_data->write_buff));
+            strcpy(recv_data->write_buff,"dele success");
+            if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+        }else{
+            bzero(recv_data->write_buff,sizeof(recv_data->write_buff));
+            strcpy(recv_data->write_buff,"have done");
+            if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
+                my_err("send",__LINE__);
+            }
+            return 0;
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 int finsh(recv_datas *mybag,MYSQL mysql){
     MYSQL_RES   *res = NULL;
@@ -1800,6 +1928,17 @@ void *ser_deal(void *arg){
         read_file(recv_buf,mysql);
         pthread_mutex_unlock(&mutex);
         break;
+
+        case LOOK_GRP_HISTORY:
+        pthread_mutex_lock(&mutex);
+        look_grp_history(recv_buf,mysql);
+        pthread_mutex_unlock(&mutex);
+        break;
+
+        case DELE_GRP_HISTORY:
+        pthread_mutex_lock(&mutex);
+        dele_grp_history(recv_buf,mysql);
+        pthread_mutex_unlock(&mutex);
 
     }
 close_mysql(mysql);
