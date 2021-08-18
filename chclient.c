@@ -960,8 +960,6 @@ void *send_mission(void*arg){
                 pthread_mutex_lock(&cl_mu);
                 pthread_cond_wait(&cl_co, &cl_mu);
                 pthread_mutex_unlock(&cl_mu);
-                send_data->cont++;
-                printf("已发送%d个包\n",send_data->cont);
                 break;
             }
             if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
@@ -970,6 +968,7 @@ void *send_mission(void*arg){
             pthread_mutex_lock(&cl_mu);
             pthread_cond_wait(&cl_co, &cl_mu);
             pthread_mutex_unlock(&cl_mu);
+            send_data->cont++;
         }
         close(fp);
             send_data->type = FINSH;
@@ -986,6 +985,8 @@ void *send_mission(void*arg){
                 printf("已成功发送给对方!!!\n");
             }
             send_data->recv_id = 0;
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            bzero(send_data->read_buff,sizeof(send_data->read_buff));
             printf("按任意键继续...\n");
             getchar();
         break;
@@ -1021,25 +1022,25 @@ void *send_mission(void*arg){
                     scanf("%d",&sure);
                     getchar();
                 if(sure == 1){
-                    send_data->recv_id = file_info->send_id[j];
-                    bzero(send_data->write_buff,sizeof(send_data->write_buff));
-                    strcpy(send_data->write_buff,file_info->send_nickname[j]);
-                while(1){
-                    send_data->type = READ_FILE;
-                    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-                        my_err("send",__LINE__);
+                    send_data->cont = 0;
+                    while(1){
+                        send_data->type = READ_FILE;
+                        if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                            my_err("send",__LINE__);
+                        }
+                            printf("开始接收文件...\n");
+                            pthread_mutex_lock(&cl_mu);
+                            pthread_cond_wait(&cl_co, &cl_mu);
+                            pthread_mutex_unlock(&cl_mu);
+                            send_data->cont++;
+                            printf("已接收%d个包\n",send_data->cont);
+                        if(strcmp(send_data->write_buff,"finish") == 0){
+                            printf("文件接收完毕!!");
+                            printf("按任意键继续");
+                            getchar();
+                            break;
+                        }
                     }
-                        printf("开始接收文件...\n");
-                        pthread_mutex_lock(&cl_mu);
-                        pthread_cond_wait(&cl_co, &cl_mu);
-                        pthread_mutex_unlock(&cl_mu);
-                    if(strcmp(send_data->write_buff,"finish") == 0){
-                        printf("文件接收完毕!!");
-                        printf("按任意键继续");
-                        getchar();
-                        break;
-                    }
-                }
                 break;
                 }
                 else if(sure == 2){
@@ -1059,6 +1060,8 @@ void *send_mission(void*arg){
             printf("是否清空文件缓存? 1.yes 2.no\n");
             scanf("%d",&sure);
             getchar();
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            bzero(send_data->read_buff,sizeof(send_data->read_buff));
             if(sure == 1)  bzero(file_info,sizeof(FILE_INFO));
             break;
 
@@ -1077,24 +1080,24 @@ void *send_mission(void*arg){
                     scanf("%d",&sure);
                     getchar();
                 if(sure == 1){
-                    send_data->recv_id = box->file_send_id[j];
-                    bzero(send_data->write_buff,sizeof(send_data->write_buff));
-                    strcpy(send_data->write_buff,box->file_send_nickname[j]);
+                    send_data->cont = 0;
                 while(1){
                     send_data->type = READ_FILE;
-                if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
-                    my_err("send",__LINE__);
-                }
-                    printf("开始接收文件...\n");
-                    pthread_mutex_lock(&cl_mu);
-                    pthread_cond_wait(&cl_co, &cl_mu);
-                    pthread_mutex_unlock(&cl_mu);
-                if(strcmp(send_data->write_buff,"finish") == 0){
-                    printf("文件接收完毕!!");
-                    printf("按任意键继续");
-                    getchar();
-                    break;
-                }
+                    if(send(connfd,send_data,sizeof(recv_datas),0) < 0){
+                        my_err("send",__LINE__);
+                    }
+                        printf("开始接收文件...\n");
+                        pthread_mutex_lock(&cl_mu);
+                        pthread_cond_wait(&cl_co, &cl_mu);
+                        pthread_mutex_unlock(&cl_mu);
+                        send_data->cont++;
+                        printf("已接收%d个包\n",send_data->cont);
+                        if(strcmp(send_data->write_buff,"finish") == 0){
+                        printf("文件接收完毕!!");
+                        printf("按任意键继续");
+                        getchar();
+                        break;
+                    }
                 }
                 break;
                 }
@@ -1127,6 +1130,8 @@ void *send_mission(void*arg){
                 printf("按任意键继续");
                 getchar();
             }
+            bzero(send_data->write_buff,sizeof(send_data->write_buff));
+            bzero(send_data->read_buff,sizeof(send_data->read_buff));
             break;
 
             case 0:
@@ -1620,13 +1625,9 @@ void *recv_mission(void*arg){
             pthread_cond_signal(&cl_co);
             pthread_mutex_unlock(&cl_mu);
             break;
-
-
         }
     }
 }
-
-
 
 int main(){
     int connfd;

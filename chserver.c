@@ -1387,17 +1387,6 @@ int dele_grp_history(recv_datas *mybag,MYSQL mysql){
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
 int finsh(recv_datas *mybag,MYSQL mysql){
     MYSQL_RES   *res = NULL;
     MYSQL_ROW    row;
@@ -1469,21 +1458,24 @@ int send_file(recv_datas *mybag,MYSQL mysql){
     if(row == NULL){
         return -1;
     }
-    if((fp = open("file",O_WRONLY|O_CREAT|O_APPEND,0775)) < 0){
+    if((fp = open("file",O_WRONLY|O_CREAT/* 0_APPEND */,0775)) < 0){  //0_APPEND追加不能用同一个文件名，即使删除了也会先将上一次保存的大小为空再追加新的东西
         printf("%s\n",strerror(errno));
     }if(recv_data->flag == 0){
-    write(fp,recv_data->read_buff,recv_data->mun);
-    close(fp);
+           lseek(fp,(sizeof(recv_data->read_buff)-1)*recv_data->cont,SEEK_SET);
+        write(fp,recv_data->read_buff,recv_data->mun);
+        close(fp);
         if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
             my_err("send",__LINE__);
         }
     }else{
+           lseek(fp,(sizeof(recv_data->read_buff)-1)*recv_data->cont,SEEK_SET);
         write(fp,recv_data->read_buff,sizeof(recv_data->read_buff)-1);
         close(fp);
         if(send(recv_data->recvfd,recv_data,sizeof(recv_datas),0) < 0){
             my_err("send",__LINE__);
         }
     }
+    return 0;
 }
 
 int read_file(recv_datas *mybag,MYSQL mysql){
@@ -1943,10 +1935,6 @@ void *ser_deal(void *arg){
     }
 close_mysql(mysql);
 }
-
-
-
-
 
 int main(void){
     int   connfd,sockfd;
