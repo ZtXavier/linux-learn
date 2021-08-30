@@ -1,5 +1,5 @@
-#ifndef BCCE2023_905A_4135_BD3E_F68333B9076F
-#define BCCE2023_905A_4135_BD3E_F68333B9076F
+#ifndef HEAD_H
+#define HEAD_H
 #include<stdio.h>
 #include<sys/types.h>
 #include<sys/socket.h>
@@ -153,4 +153,4 @@ typedef struct group_info{
     int       group_state[50];            //群状态
     char      group_name[50][50];         //群名
 }GRP_INFO;
-#endif /* BCCE2023_905A_4135_BD3E_F68333B9076F */
+#endif
