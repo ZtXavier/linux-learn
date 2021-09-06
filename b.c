@@ -3,8 +3,8 @@
 #include<stdlib.h>
 
 int main(void){
-    char ch[256];
-    scanf("%s",ch);
-    printf("%s",ch);
+    int a = 0x12345678;
+    char ch = (char)a;
+    printf("%c",ch);
     return 0;
 }

@@ -21,7 +21,8 @@
     "pack.h": "c",
     "ser_deal.h": "c",
     "head.h": "c",
-    "zlog.h": "c"
+    "zlog.h": "c",
+    "cstdarg": "cpp"
   }
 
 }
