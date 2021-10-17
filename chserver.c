@@ -41,7 +41,7 @@ typedef struct CThread_Pool{
     pthread_mutex_t  pool_mutex;       /* 互斥锁整个线程 */
     pthread_mutex_t  busy_mutex;       /* (找线程池中修改频率最多的来加锁) */
     pthread_cond_t   notFull;          /* 任务队列是否满(生产者) */
-    pthread_cond_t   notEmpty;         /* 任务队列是否空(消费者) */  
+    pthread_cond_t   notEmpty;         /* 任务队列是否空(消费者) */
     pthread_t        *threadID;        /* 工作线程ID */
     pthread_t         manageID;        /* 管理者线程ID */
     int maxthread_num;                 /* 线程池最大线程数 */
