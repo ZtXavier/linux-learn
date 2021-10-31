@@ -22,7 +22,18 @@
     "ser_deal.h": "c",
     "head.h": "c",
     "zlog.h": "c",
-    "cstdarg": "cpp"
+    "cstdarg": "cpp",
+    "chrono": "c",
+    "cstdio": "c",
+    "shared_mutex": "c",
+    "regex": "c",
+    "bitset": "c",
+    "charconv": "c",
+    "memory_resource": "c",
+    "ranges": "c",
+    "scoped_allocator": "c",
+    "valarray": "c",
+    "*.rh": "c"
   }
 
 }
