@@ -6,7 +6,7 @@
   "code-runner.saveFileBeforeRun": true,
   "code-runner.preserveFocus": true,
   "code-runner.clearPreviousOutput": false,
-  "C_Cpp_Runner.warnings": "",
+  "C_Cpp_Runner.warnings": [],
   "files.associations": {
     "mylib.h": "c",
     "string.h": "c",
@@ -33,7 +33,15 @@
     "ranges": "c",
     "scoped_allocator": "c",
     "valarray": "c",
-    "*.rh": "c"
-  }
-
+    "*.rh": "c",
+    "my_tcp.h": "c"
+  },
+  "C_Cpp_Runner.cppCompilerPath": "/usr/bin/g++",
+  "C_Cpp_Runner.debuggerPath": "/usr/bin/gdb",
+  "C_Cpp_Runner.compilerArgs": [],
+  "C_Cpp_Runner.includePaths": [],
+  "C_Cpp_Runner.linkerArgs": [],
+  "C_Cpp_Runner.excludeSearch": [],
+  "C_Cpp_Runner.enableWarnings": true,
+  "C_Cpp_Runner.warningsAsError": false
 }

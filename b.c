@@ -54,6 +54,8 @@ int main(int argc, char **argv)
 {
     // func();
     // func2();
-    func3();
+    // func3();
+    int a = 4;
+    printf("%d",a);
     return 0;
 }
