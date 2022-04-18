@@ -13,7 +13,7 @@
 #include <pwd.h>
 
 
-#define normal          0　 
+#define normal          0
 #define out_redirect    1 
 #define in_redirect     2
 #define have_pipe       3
@@ -24,7 +24,7 @@ int find_command(char *command);           //　在当前目录，以及/bin、/
 void explain_input(char *buf, int *argcout, char arglist[100][256]);//解析ｂｕｆ中的命令，将每个选项存到ａｒｇｌｉｓｔ
 
 char oldpwd[300];//为实现ｃｄ　－，用ｏｌｄｐｗｄ来保存上个路径
-
+char *file2;
 int main(int argc, char **argv)
 {
 
@@ -79,7 +79,6 @@ int main(int argc, char **argv)
 		free(buf);
 		buf = NULL;
 	}
-
     exit(0);
 }
 
@@ -184,10 +183,182 @@ void do_cmd(int argcout,char arglist[100][256])
         }
 	}
 
-	if(flag > 1){
-		printf("wrong command !\n");
-		return ;
+
+	/* 该模块支持多重管道和多重重定向 */
+	if(flag > 1){       
+		// printf("wrong command !\n");
+		int num = 0;
+		char *argv_c[100][256];
+		char *file[100][2];
+		//作为标记
+		int flag[100][2];
+		int ar = 0;
+		int arnum = 0;
+		for(int i = 0;i < 100;i++)
+		{
+			flag[i][0] = flag[i][1] = 0;
+			file[i][0] = file[i][1] = 0;
+			for(int j = 0;j < 256;j++)
+			{
+				argv_c[i][j] = 0;
+			}
+		}
+		// for(int i = 0;i < argcout;i++)  argv_c[0][i] = arg[i];
+
+		// argv_c[0][argcout] = NULL;
+
+		for(int i = 0;i < argcout;i++)
+		{
+			if(strcmp(arg[i],"|") == 0) 
+			{
+				argv_c[ar][arnum++] = NULL;
+				ar++;
+				arnum = 0;
+			}
+			else if(strcmp(arg[i],">") == 0) 
+			{
+				flag[ar][1] = out_redirect;
+				file[ar][1] = arg[i+1];
+				argv_c[ar][arnum++] = NULL;
+			}
+			else if(strcmp(arg[i],">>") == 0) 
+			{
+				flag[ar][1] = out_redirec;
+				file[ar][1] = arg[i+1];
+				argv_c[ar][arnum++] = NULL;
+			}
+			else if(strcmp(arg[i],"<") == 0) 
+			{
+				flag[ar][0] = in_redirect;
+				file[ar][0] = arg[i+1];
+				argv_c[ar][arnum++] = NULL;
+			}
+			else
+			{
+				argv_c[ar][arnum++] = arg[i];
+			}
+		}
+		pid_t pid_;
+		if((pid_ = fork()) < 0)
+		{
+			perror("fork  failed\n");
+			exit(1);
+		} 
+		if(pid_ == 0)
+		{
+			pid_t pidn;
+			int status;
+			int fdn;
+			int point = 0;
+			
+			for( num = 0;num <ar;num++)
+			{
+				if((pidn = fork()) < 0)
+				{
+					perror("fork  failed\n");
+					exit(1);
+				}
+				if(pidn == 0)
+				{
+					if(num)
+					{
+						// if(point == 1)
+						// {
+						// 	close(0); // 关闭该进程的读 
+						// 	int fd = open(file2,O_RDONLY);
+						// }
+						// else
+						// {
+							close(0); // 关闭该进程的读 
+							int fd = open("tt.txt",O_RDONLY);
+						// }
+					}
+					else if(flag[num][0] == in_redirect)
+					{
+						close(0);
+						int fd = open(file[num][0],O_RDONLY);
+					}
+					else if(flag[num][1] == out_redirect)
+					{
+						// if(num == 0)
+						// {
+						// 	point = 1;
+						// 	file2 = file[num][1];
+						// }
+						close(1);
+						int fd = open(file[num][1],O_WRONLY | O_CREAT | O_TRUNC,0664);
+					}
+					else if(flag[num][1] == out_redirec)
+					{
+						// if(num == 0)
+						// {
+						// 	point = 1;
+						// 	file2 = file[num][1];
+						// }
+						close(1);
+						int fd = open(file[num][1],O_WRONLY | O_CREAT | O_APPEND,0664);
+					}
+					close(1);
+					// if(point == 1)
+					// {
+					// 	int fd = open(file2,O_WRONLY | O_CREAT | O_TRUNC,0664);
+					// }
+					// else
+					// {
+						// 为了将“tt.txt"文件描述符解引用来删除原来的文件
+						remove("tt.txt");
+						int fd = open("tt.txt",O_WRONLY | O_CREAT | O_TRUNC,0664);
+					// }
+
+					if( !(find_command(argv_c[num][0])) ){
+						printf("%s :command not found !\n",argv_c[num][0]);
+						exit(0);
+					}
+					if(execvp(argv_c[num][0],argv_c[num]) == -1)
+					{
+						perror("execvp error!\n");
+						exit(0);
+					}
+				}
+				else
+				{
+					if(waitpid(pidn,&status,0) == -1)
+					{
+						perror("waitpid failed\n");
+						exit(1);
+					}
+				}
+			}	
+					close(0);
+					int fd = open("tt.txt",O_RDONLY);
+				 	if(flag[num][1] == out_redirect)
+					{
+						close(1);
+						int fd = open(file[num][1],O_WRONLY | O_CREAT | O_TRUNC,0664);
+					}
+					else if(flag[num][1] == out_redirec)
+					{
+						close(1);
+						int fd = open(file[num][1],O_WRONLY | O_CREAT | O_APPEND,0664);
+					}
+					if( !(find_command(argv_c[num][0])) ){
+						printf("%s :command not found !\n",argv_c[num][0]);
+						exit(0);
+					}
+					execvp(argv_c[num][0],argv_c[num]);
+					remove("tt.txt");
+		}
+		else
+		{
+				if(waitpid(pid_,NULL,0) == -1)
+				{
+					perror("waitpid failed\n");
+					exit(1);
+				}
+		}
 	}
+	else
+	{
 	if(how==out_redirect){
 		for( i = 0; arg[i]!=NULL; i++ ) {
 			if(strcmp(arg[i],">") == 0) {
@@ -330,18 +501,14 @@ void do_cmd(int argcout,char arglist[100][256])
     default :
         break;
     }
-	
     if( backgroud ==1 ) {
         printf("[process id %d]\n",pid);//父进程退出，不等待子进程，表示后台执行
         exit(0);
     }
-
-
     if(waitpid(pid,&status,0) == -1){
         printf("wait for child process error!\n");//父进程等待子进程结束
     }
-
-
+	}
 }
 
 

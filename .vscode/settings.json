@@ -34,7 +34,10 @@
     "scoped_allocator": "c",
     "valarray": "c",
     "*.rh": "c",
-    "my_tcp.h": "c"
+    "my_tcp.h": "c",
+    "complex": "c",
+    "fstream": "c",
+    "system_error": "c"
   },
   "C_Cpp_Runner.cppCompilerPath": "/usr/bin/g++",
   "C_Cpp_Runner.debuggerPath": "/usr/bin/gdb",

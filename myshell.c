@@ -280,7 +280,9 @@ int my_cd(char *buf){
 
 
     if(flag > 1){
-        printf("wrong command\n");
+        // printf("wrong command\n");
+        
+
         return ;
     }
 
@@ -325,8 +327,6 @@ int my_cd(char *buf){
            }
         }
     } 
-
-
 
     if((pid = fork()) < 0){
         printf("fork error\n");
