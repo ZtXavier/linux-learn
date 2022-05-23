@@ -2,9 +2,10 @@
 all:server shclient
 
 shclient:shclient.c comm.c
-	gcc -o $@ $^
+	gcc -o $@ $^ -g
 server:server.c comm.c
-	gcc -o $@ $^
+	gcc -o $@ $^ -g
+
 .PHONY:clean
 clean:
 	rm -f chclient server

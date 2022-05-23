@@ -5,7 +5,7 @@ int main()
 {
     int shmid = CreateShm(4096);
     char * addr = shmat(shmid,NULL,0);
-    sleep(2);
+    sleep(5);
     int i = 0;
     while(i++ < 26)
     {
