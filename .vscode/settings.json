@@ -37,7 +37,8 @@
     "my_tcp.h": "c",
     "complex": "c",
     "fstream": "c",
-    "system_error": "c"
+    "system_error": "c",
+    "libcal.h": "c"
   },
   "C_Cpp_Runner.cppCompilerPath": "/usr/bin/g++",
   "C_Cpp_Runner.debuggerPath": "/usr/bin/gdb",
