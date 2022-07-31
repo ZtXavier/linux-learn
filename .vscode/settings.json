@@ -39,7 +39,8 @@
     "fstream": "c",
     "system_error": "c",
     "libcal.h": "c",
-    "compare": "c"
+    "compare": "c",
+    "signal.h": "c"
   },
   "C_Cpp_Runner.cppCompilerPath": "/usr/bin/g++",
   "C_Cpp_Runner.debuggerPath": "/usr/bin/gdb",
